@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wallpaper Engine – Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+
+  <!-- Custom Title Bar -->
+  <div id="titlebar">
+    <div class="titlebar-drag">
+      <div class="titlebar-logo">
+        <span class="logo-icon">◆</span>
+        <span class="logo-text">Wallpaper Engine</span>
+      </div>
+    </div>
+    <div class="titlebar-controls">
+      <button id="btn-minimize" class="titlebar-btn" aria-label="Minimize">
+        <svg width="12" height="12" viewBox="0 0 12 12"><rect y="5" width="12" height="2" rx="1" fill="currentColor"/></svg>
+      </button>
+      <button id="btn-maximize" class="titlebar-btn" aria-label="Maximize">
+        <svg width="12" height="12" viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+      </button>
+      <button id="btn-close" class="titlebar-btn btn-close" aria-label="Close">
+        <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="app">
+    <!-- Sidebar -->
+    <nav id="sidebar">
+      <div class="nav-section">
+        <div class="nav-label">MONITORS</div>
+        <div id="monitor-layout" class="monitor-layout"></div>
+        <div id="monitor-info" class="monitor-info"></div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">MODE</div>
+        <div class="mode-selector">
+          <button class="mode-btn active" data-mode="same" id="mode-same">
+            <div class="mode-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="4" width="8" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                <rect x="14" y="4" width="8" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                <rect x="2" y="14" width="8" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                <rect x="14" y="14" width="8" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="6" cy="7" r="1.5" fill="currentColor"/>
+                <circle cx="18" cy="7" r="1.5" fill="currentColor"/>
+                <circle cx="6" cy="17" r="1.5" fill="currentColor"/>
+                <circle cx="18" cy="17" r="1.5" fill="currentColor"/>
+              </svg>
+            </div>
+            <span>Same</span>
+          </button>
+          <button class="mode-btn" data-mode="different" id="mode-different">
+            <div class="mode-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="4" width="8" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                <rect x="14" y="4" width="8" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="6" cy="7" r="1.5" fill="currentColor"/>
+                <rect x="16" y="6" width="4" height="2" rx="0.5" fill="currentColor"/>
+              </svg>
+            </div>
+            <span>Different</span>
+          </button>
+          <button class="mode-btn" data-mode="spanning" id="mode-spanning">
+            <div class="mode-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="12" y1="6" x2="12" y2="18" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2"/>
+                <path d="M6 10 L10 14 L14 11 L18 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span>Span</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="nav-section nav-bottom">
+        <button id="btn-apply" class="btn-primary">
+          <span class="btn-icon">✦</span> Apply Wallpaper
+        </button>
+        <button id="btn-remove" class="btn-danger">
+          <span class="btn-icon">✕</span> Remove All
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Panel -->
+    <main id="main-panel">
+      <!-- Wallpaper Picker -->
+      <section class="panel" id="panel-picker">
+        <h2 class="panel-title">
+          <span id="panel-title-text">Wallpaper</span>
+          <span id="selected-monitor-badge" class="monitor-badge" style="display:none;"></span>
+        </h2>
+
+        <div id="drop-zone" class="drop-zone">
+          <div class="drop-zone-content">
+            <div class="drop-icon">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <rect x="4" y="8" width="40" height="32" rx="4" stroke="currentColor" stroke-width="2"/>
+                <path d="M4 32L16 22L24 28L34 18L44 26" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="14" cy="18" r="3" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </div>
+            <p class="drop-text">Drop a file here or <button id="btn-browse" class="link-btn">browse</button></p>
+            <p class="drop-hint">Supports: PNG, JPG, GIF, MP4, WEBM, HTML, and more</p>
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div id="preview-container" class="preview-container" style="display:none;">
+          <div class="preview-header">
+            <div class="preview-info">
+              <span id="preview-filename" class="preview-filename"></span>
+              <span id="preview-type-badge" class="type-badge"></span>
+            </div>
+            <button id="btn-change" class="btn-ghost">Change</button>
+          </div>
+          <div id="preview-area" class="preview-area"></div>
+        </div>
+      </section>
+
+      <!-- Combined Options + Fit Preview Panel -->
+      <section class="panel" id="panel-options" style="display:none;">
+        <h2 class="panel-title">Options</h2>
+
+        <!-- Fit Mode with integrated visual preview -->
+        <div class="option-group" id="opt-fit-group">
+          <div class="option-label-row">
+            <label class="option-label">Fit Mode</label>
+            <span class="option-dim-info" id="dim-info"></span>
+          </div>
+          <div class="fit-preview-grid">
+            <div class="fit-preview-item active" data-fit="cover">
+              <div class="fit-preview-monitor" id="fit-vis-cover">
+                <div class="fit-preview-image"></div>
+                <!-- Template overlay for slow-loading media -->
+                <div class="fit-template" id="fit-tpl-cover"></div>
+              </div>
+              <div class="fit-preview-meta">
+                <span class="fit-preview-label">Cover</span>
+                <span class="fit-preview-desc">Fills screen, may crop</span>
+              </div>
+            </div>
+            <div class="fit-preview-item" data-fit="contain">
+              <div class="fit-preview-monitor" id="fit-vis-contain">
+                <div class="fit-preview-image"></div>
+                <div class="fit-template" id="fit-tpl-contain"></div>
+              </div>
+              <div class="fit-preview-meta">
+                <span class="fit-preview-label">Contain</span>
+                <span class="fit-preview-desc">Fits inside, may letterbox</span>
+              </div>
+            </div>
+            <div class="fit-preview-item" data-fit="stretch">
+              <div class="fit-preview-monitor" id="fit-vis-stretch">
+                <div class="fit-preview-image"></div>
+                <div class="fit-template" id="fit-tpl-stretch"></div>
+              </div>
+              <div class="fit-preview-meta">
+                <span class="fit-preview-label">Stretch</span>
+                <span class="fit-preview-desc">Fills exactly, may distort</span>
+              </div>
+            </div>
+            <div class="fit-preview-item" data-fit="center">
+              <div class="fit-preview-monitor" id="fit-vis-center">
+                <div class="fit-preview-image"></div>
+                <div class="fit-template" id="fit-tpl-center"></div>
+              </div>
+              <div class="fit-preview-meta">
+                <span class="fit-preview-label">Center</span>
+                <span class="fit-preview-desc">Original size, centered</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sound Toggle (video only) -->
+        <div class="option-group" id="opt-sound-group" style="display:none;">
+          <label class="option-label">Sound</label>
+          <div class="toggle-row">
+            <span class="toggle-text">Enable audio playback</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-sound">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Loop Toggle (video only) -->
+        <div class="option-group" id="opt-loop-group" style="display:none;">
+          <label class="option-label">Loop</label>
+          <div class="toggle-row">
+            <span class="toggle-text">Loop video playback</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-loop" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Interactive Toggle (HTML only) -->
+        <div class="option-group" id="opt-interactive-group" style="display:none;">
+          <label class="option-label">Interactive</label>
+          <div class="toggle-row">
+            <span class="toggle-text">Enable mouse & keyboard interaction</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-interactive">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <p class="option-hint">When enabled, clicks go to the HTML wallpaper instead of desktop icons. Use <kbd>Ctrl+Alt+W</kbd> to toggle.</p>
+        </div>
+      </section>
+
+      <!-- Status Bar -->
+      <footer id="status-bar">
+        <div class="status-left">
+          <span id="status-text" class="status-text">Ready</span>
+        </div>
+        <div class="status-right">
+          <label class="toggle-row compact">
+            <span class="toggle-text">Start with Windows</span>
+            <label class="toggle-switch small">
+              <input type="checkbox" id="toggle-autostart">
+              <span class="toggle-slider"></span>
+            </label>
+          </label>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

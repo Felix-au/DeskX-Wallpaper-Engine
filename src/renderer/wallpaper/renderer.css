@@ -1,0 +1,107 @@
+/* ====================================================================
+   Wallpaper Renderer Styles
+   Full-viewport, zero-margin rendering for desktop wallpaper
+   ==================================================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#wallpaper-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Placeholder --- */
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  opacity: 0.3;
+}
+
+.placeholder-icon {
+  font-size: 48px;
+}
+
+.placeholder-text {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  color: #888;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* --- Image / GIF --- */
+#wallpaper-container img.wallpaper-media {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#wallpaper-container img.wallpaper-media.fit-cover {
+  object-fit: cover;
+}
+
+#wallpaper-container img.wallpaper-media.fit-contain {
+  object-fit: contain;
+}
+
+#wallpaper-container img.wallpaper-media.fit-stretch {
+  object-fit: fill;
+}
+
+#wallpaper-container img.wallpaper-media.fit-center {
+  object-fit: none;
+  object-position: center;
+}
+
+/* --- Video --- */
+#wallpaper-container video.wallpaper-media {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#wallpaper-container video.wallpaper-media.fit-cover {
+  object-fit: cover;
+}
+
+#wallpaper-container video.wallpaper-media.fit-contain {
+  object-fit: contain;
+}
+
+#wallpaper-container video.wallpaper-media.fit-stretch {
+  object-fit: fill;
+}
+
+#wallpaper-container video.wallpaper-media.fit-center {
+  object-fit: none;
+  object-position: center;
+}
+
+/* --- HTML (webview / iframe) --- */
+#wallpaper-container webview.wallpaper-html,
+#wallpaper-container iframe.wallpaper-html {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}

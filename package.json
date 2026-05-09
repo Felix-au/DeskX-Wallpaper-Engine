@@ -1,0 +1,25 @@
+{
+  "name": "wallpaper-engine",
+  "productName": "Wallpaper Engine",
+  "version": "1.0.0",
+  "description": "Set static images, GIFs, videos, and HTML pages as your desktop wallpaper with full multi-monitor support",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "dev": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "build": "node generate-icon.js && electron-forge make",
+    "build:dir": "node generate-icon.js && electron-forge package"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.6.0",
+    "@electron-forge/maker-squirrel": "^7.6.0",
+    "@electron-forge/maker-zip": "^7.6.0",
+    "electron": "^34.0.0"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "koffi": "^2.9.0"
+  }
+}
