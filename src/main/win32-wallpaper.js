@@ -188,32 +188,26 @@ function attachWindow(browserWindow, options = {}) {
   const newExStyle = (exStyle | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE) & ~WS_EX_APPWINDOW;
   SetWindowLongPtrW(childHwnd, GWL_EXSTYLE, newExStyle);
 
-  // For spanning windows, skip SetParent — WorkerW clips to primary monitor
-  // bounds, so spanning must use the fallback z-order approach.
-  if (!options.forceFallback) {
-    // Try WorkerW technique
-    const target = findWorkerW();
+  // Try WorkerW technique
+  const target = findWorkerW();
 
-    if (target) {
-      // WorkerW found — parent our window to it
-      try {
-        const style = Number(GetWindowLongPtrW(childHwnd, GWL_STYLE));
-        const newStyle = (style & ~WS_POPUP) | WS_CHILD;
-        SetWindowLongPtrW(childHwnd, GWL_STYLE, newStyle);
+  if (target) {
+    // WorkerW found — parent our window to it
+    try {
+      const style = Number(GetWindowLongPtrW(childHwnd, GWL_STYLE));
+      const newStyle = (style & ~WS_POPUP) | WS_CHILD;
+      SetWindowLongPtrW(childHwnd, GWL_STYLE, newStyle);
 
-        SetParent(childHwnd, target);
-        ShowWindow(childHwnd, SW_SHOWNOACTIVATE);
+      SetParent(childHwnd, target);
+      ShowWindow(childHwnd, SW_SHOWNOACTIVATE);
 
-        usingFallback = false;
-        console.log('[Win32] ✓ Attached via WorkerW (true wallpaper mode)');
-        return true;
-      } catch (err) {
-        console.error('[Win32] WorkerW attach failed:', err.message);
-        // Fall through to fallback
-      }
+      usingFallback = false;
+      console.log('[Win32] ✓ Attached via WorkerW (true wallpaper mode)');
+      return true;
+    } catch (err) {
+      console.error('[Win32] WorkerW attach failed:', err.message);
+      // Fall through to fallback
     }
-  } else {
-    console.log('[Win32] Forcing fallback mode (spanning)');
   }
 
   // Fallback: keep as top-level window but push to HWND_BOTTOM

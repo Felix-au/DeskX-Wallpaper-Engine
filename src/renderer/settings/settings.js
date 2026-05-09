@@ -38,9 +38,11 @@ const dimInfo = document.getElementById('dim-info');
 const optFitGroup = document.getElementById('opt-fit-group');
 const optSoundGroup = document.getElementById('opt-sound-group');
 const optLoopGroup = document.getElementById('opt-loop-group');
+const optInteractiveGroup = document.getElementById('opt-interactive-group');
 
 const toggleSound = document.getElementById('toggle-sound');
 const toggleLoop = document.getElementById('toggle-loop');
+const toggleInteractive = document.getElementById('toggle-interactive');
 const toggleAutostart = document.getElementById('toggle-autostart');
 
 const panelTitleText = document.getElementById('panel-title-text');
@@ -220,7 +222,7 @@ function buildConfig(file) {
     wallpaperPath: file.filePath,
     wallpaperType: file.wallpaperType,
     soundEnabled: toggleSound.checked,
-    interactive: file.wallpaperType === 'html', // Always interactive for HTML
+    interactive: toggleInteractive.checked,
     loop: toggleLoop.checked,
     fit: getSelectedFit(),
   };
@@ -452,14 +454,17 @@ function showOptions(config) {
   panelOptions.style.display = 'block';
 
   const isVideo = config.wallpaperType === 'video';
+  const isHTML = config.wallpaperType === 'html';
   const isMedia = ['image', 'gif', 'video'].includes(config.wallpaperType);
 
   optFitGroup.style.display = isMedia ? 'flex' : 'none';
   optSoundGroup.style.display = isVideo ? 'flex' : 'none';
   optLoopGroup.style.display = isVideo ? 'flex' : 'none';
+  optInteractiveGroup.style.display = isHTML ? 'flex' : 'none';
 
   toggleSound.checked = config.soundEnabled || false;
   toggleLoop.checked = config.loop !== false;
+  toggleInteractive.checked = config.interactive || false;
 
   // Highlight current fit in preview grid
   document.querySelectorAll('.fit-preview-item').forEach(item => {
