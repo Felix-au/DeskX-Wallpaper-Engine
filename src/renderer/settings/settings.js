@@ -38,11 +38,9 @@ const dimInfo = document.getElementById('dim-info');
 const optFitGroup = document.getElementById('opt-fit-group');
 const optSoundGroup = document.getElementById('opt-sound-group');
 const optLoopGroup = document.getElementById('opt-loop-group');
-const optInteractiveGroup = document.getElementById('opt-interactive-group');
 
 const toggleSound = document.getElementById('toggle-sound');
 const toggleLoop = document.getElementById('toggle-loop');
-const toggleInteractive = document.getElementById('toggle-interactive');
 const toggleAutostart = document.getElementById('toggle-autostart');
 
 const panelTitleText = document.getElementById('panel-title-text');
@@ -222,7 +220,7 @@ function buildConfig(file) {
     wallpaperPath: file.filePath,
     wallpaperType: file.wallpaperType,
     soundEnabled: toggleSound.checked,
-    interactive: toggleInteractive.checked,
+    interactive: file.wallpaperType === 'html', // HTML is always interactive
     loop: toggleLoop.checked,
     fit: getSelectedFit(),
   };
@@ -295,13 +293,10 @@ function showPreview(config) {
 
       video.onloadedmetadata = () => {
         mediaDimensions = { w: video.videoWidth, h: video.videoHeight };
-        updateFitPreview(); // Update template with actual dimensions
+        // Generate a white "visible area" preview at the video's native dimensions
+        generateVideoAreaPreview(video.videoWidth, video.videoHeight);
+        updateFitPreview();
       };
-
-      // Capture a thumbnail frame once the video can play
-      video.addEventListener('canplay', () => {
-        captureVideoThumbnail(video);
-      }, { once: true });
 
       previewArea.appendChild(video);
       break;
@@ -324,19 +319,49 @@ function showPreview(config) {
 }
 
 /**
- * Capture a single frame from the video as a data URL thumbnail.
+ * Generate a white canvas at the video's dimensions with "Visible area" text.
+ * This gives the user a clear dimensional reference for how each fit mode
+ * will crop or pad the video on their monitor.
  */
-function captureVideoThumbnail(video) {
+function generateVideoAreaPreview(vidW, vidH) {
   try {
+    // Scale down for the data URL but keep aspect ratio
+    const maxDim = 400;
+    const scale = Math.min(maxDim / vidW, maxDim / vidH, 1);
+    const cW = Math.round(vidW * scale);
+    const cH = Math.round(vidH * scale);
+
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = cW;
+    canvas.height = cH;
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    videoThumbnailUrl = canvas.toDataURL('image/jpeg', 0.7);
-    updateFitPreview(); // Re-render with actual thumbnail
+
+    // White fill
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, cW, cH);
+
+    // Subtle border
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, cW - 1, cH - 1);
+
+    // Label text
+    const fontSize = Math.max(10, Math.round(cH * 0.08));
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.font = `600 ${fontSize}px Inter, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Visible area', cW / 2, cH / 2 - fontSize * 0.6);
+
+    // Dimension sub-label
+    const subSize = Math.max(8, Math.round(cH * 0.055));
+    ctx.font = `400 ${subSize}px Inter, sans-serif`;
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.fillText(`${vidW} × ${vidH}`, cW / 2, cH / 2 + fontSize * 0.6);
+
+    videoThumbnailUrl = canvas.toDataURL('image/png');
   } catch (e) {
-    console.warn('[Settings] Could not capture video thumbnail:', e);
+    console.warn('[Settings] Could not generate video area preview:', e);
   }
 }
 
@@ -378,8 +403,11 @@ function updateFitPreview() {
   const monAspect = monW / monH;
 
   // Determine which image source to use for the preview
-  const hasRealThumb = videoThumbnailUrl || (currentFile && currentFile.wallpaperType !== 'video' && currentFile.wallpaperType !== 'html');
-  const thumbUrl = videoThumbnailUrl || currentImageUrl;
+  // For images/gifs: use the actual file. For videos: use the white area canvas. For HTML: template only.
+  const isVideo = currentFile && currentFile.wallpaperType === 'video';
+  const isImage = currentFile && (currentFile.wallpaperType === 'image' || currentFile.wallpaperType === 'gif');
+  const hasRealThumb = isImage || (isVideo && videoThumbnailUrl);
+  const thumbUrl = isVideo ? videoThumbnailUrl : (isImage ? currentImageUrl : null);
 
   const fitModes = ['cover', 'contain', 'stretch', 'center'];
   const currentFit = getSelectedFit();
@@ -454,17 +482,14 @@ function showOptions(config) {
   panelOptions.style.display = 'block';
 
   const isVideo = config.wallpaperType === 'video';
-  const isHTML = config.wallpaperType === 'html';
   const isMedia = ['image', 'gif', 'video'].includes(config.wallpaperType);
 
   optFitGroup.style.display = isMedia ? 'flex' : 'none';
   optSoundGroup.style.display = isVideo ? 'flex' : 'none';
   optLoopGroup.style.display = isVideo ? 'flex' : 'none';
-  optInteractiveGroup.style.display = isHTML ? 'flex' : 'none';
 
   toggleSound.checked = config.soundEnabled || false;
   toggleLoop.checked = config.loop !== false;
-  toggleInteractive.checked = config.interactive || false;
 
   // Highlight current fit in preview grid
   document.querySelectorAll('.fit-preview-item').forEach(item => {
@@ -520,7 +545,6 @@ document.querySelectorAll('.fit-preview-item').forEach(item => {
 // Toggle handlers
 toggleSound.addEventListener('change', () => { if (currentFile) saveConfig(buildConfig(currentFile)); });
 toggleLoop.addEventListener('change', () => { if (currentFile) saveConfig(buildConfig(currentFile)); });
-toggleInteractive.addEventListener('change', () => { if (currentFile) saveConfig(buildConfig(currentFile)); });
 toggleAutostart.addEventListener('change', () => API.setAutostart(toggleAutostart.checked));
 
 // Apply
