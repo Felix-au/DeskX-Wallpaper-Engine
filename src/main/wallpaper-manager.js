@@ -150,9 +150,11 @@ function createSpanningWindow(config) {
   win.once('ready-to-show', () => {
     win.showInactive();
     try {
+      // Pass the spanning bounds so attachWindow can reposition after SetParent
       win32Wallpaper.attachWindow(win, {
         forwardMouseInput: config.interactive || false,
         forwardKeyboardInput: config.interactive || false,
+        targetBounds: { x: minX, y: minY, width: totalWidth, height: totalHeight },
       });
     } catch (err) {
       console.error('[WallpaperManager] Spanning attach failed:', err.message);

@@ -199,6 +199,19 @@ function attachWindow(browserWindow, options = {}) {
       SetWindowLongPtrW(childHwnd, GWL_STYLE, newStyle);
 
       SetParent(childHwnd, target);
+
+      // After SetParent, coordinates are relative to WorkerW.
+      // Explicitly reposition to ensure correct placement (critical for spanning).
+      if (options.targetBounds) {
+        const b = options.targetBounds;
+        SetWindowPos(
+          childHwnd, null,
+          b.x, b.y, b.width, b.height,
+          SWP_NOACTIVATE | SWP_SHOWWINDOW
+        );
+        console.log(`[Win32] Repositioned child to ${b.x},${b.y} ${b.width}x${b.height}`);
+      }
+
       ShowWindow(childHwnd, SW_SHOWNOACTIVATE);
 
       usingFallback = false;
