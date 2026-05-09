@@ -3,6 +3,7 @@
   "productName": "Wallpaper Engine",
   "version": "1.0.0",
   "description": "Set static images, GIFs, videos, and HTML pages as your desktop wallpaper with full multi-monitor support",
+  "author": "Felix",
   "main": "src/main/index.js",
   "scripts": {
     "start": "electron-forge start",

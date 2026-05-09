@@ -30,8 +30,6 @@ module.exports = {
         name: 'WallpaperEngine',
         setupExe: 'WallpaperEngine-Setup.exe',
         setupIcon: './assets/icon.ico',
-        iconUrl: 'file://./assets/icon.ico',
-        // Don't create desktop/start menu shortcuts during install
         noMsi: true,
       },
     },
