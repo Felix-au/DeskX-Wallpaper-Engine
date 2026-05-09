@@ -150,7 +150,10 @@ function createSpanningWindow(config) {
   win.once('ready-to-show', () => {
     win.showInactive();
     try {
+      // Spanning MUST use fallback (HWND_BOTTOM z-order), because
+      // SetParent to WorkerW clips the child to primary monitor bounds.
       win32Wallpaper.attachWindow(win, {
+        forceFallback: true,
         forwardMouseInput: config.interactive || false,
         forwardKeyboardInput: config.interactive || false,
       });
