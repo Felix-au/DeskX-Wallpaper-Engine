@@ -518,12 +518,15 @@ function updateFitPreview() {
         const outline = document.createElement('div');
         outline.className = 'span-monitor-outline';
 
+        // Calculate raw position as percentage of virtual desktop
         const mLeft = ((d.bounds.x - vd.x) / vd.width) * 100;
         const mTop = ((d.bounds.y - vd.y) / vd.height) * 100;
         const mWidth = (d.bounds.width / vd.width) * 100;
         const mHeight = (d.bounds.height / vd.height) * 100;
 
-        outline.style.cssText = `left:${mLeft}%;top:${mTop}%;width:${mWidth}%;height:${mHeight}%;`;
+        // Inset each outline to create a visible gap between monitors
+        const gap = 1.2; // percentage gap on each side
+        outline.style.cssText = `left:${mLeft + gap}%;top:${mTop + gap}%;width:${mWidth - gap * 2}%;height:${mHeight - gap * 2}%;`;
 
         // Monitor number label
         const label = document.createElement('span');
