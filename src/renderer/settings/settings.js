@@ -382,32 +382,99 @@ function getSelectedDisplay() {
 }
 
 /**
+ * Calculate the bounding rectangle of all displays.
+ */
+function getVirtualDesktopBounds() {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const d of displays) {
+    minX = Math.min(minX, d.bounds.x);
+    minY = Math.min(minY, d.bounds.y);
+    maxX = Math.max(maxX, d.bounds.x + d.bounds.width);
+    maxY = Math.max(maxY, d.bounds.y + d.bounds.height);
+  }
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+/**
+ * Calculate the image rect as percentages for a given fit mode.
+ */
+function calcFitRect(mode, imgW, imgH, canvasW, canvasH) {
+  const imgAspect = imgW / imgH;
+  const canvasAspect = canvasW / canvasH;
+  let iLeft, iTop, iWidth, iHeight;
+
+  switch (mode) {
+    case 'cover':
+      if (imgAspect > canvasAspect) {
+        iHeight = 100; iWidth = (imgAspect / canvasAspect) * 100;
+        iTop = 0; iLeft = -(iWidth - 100) / 2;
+      } else {
+        iWidth = 100; iHeight = (canvasAspect / imgAspect) * 100;
+        iLeft = 0; iTop = -(iHeight - 100) / 2;
+      }
+      break;
+    case 'contain':
+      if (imgAspect > canvasAspect) {
+        iWidth = 100; iHeight = (canvasAspect / imgAspect) * 100;
+        iLeft = 0; iTop = (100 - iHeight) / 2;
+      } else {
+        iHeight = 100; iWidth = (imgAspect / canvasAspect) * 100;
+        iTop = 0; iLeft = (100 - iWidth) / 2;
+      }
+      break;
+    case 'stretch':
+      iLeft = 0; iTop = 0; iWidth = 100; iHeight = 100;
+      break;
+    case 'center':
+      iWidth = Math.min((imgW / canvasW) * 100, 200);
+      iHeight = Math.min((imgH / canvasH) * 100, 200);
+      iLeft = (100 - iWidth) / 2;
+      iTop = (100 - iHeight) / 2;
+      break;
+  }
+
+  return { left: iLeft, top: iTop, width: iWidth, height: iHeight };
+}
+
+/**
  * Render the fit preview for all 4 modes.
- * Uses the actual image for images/gifs, a captured thumbnail for videos,
- * and a hatched dimensional template as fallback.
+ * - In spanning mode: shows multiple monitor tiles with wallpaper spanning across.
+ * - In same/different mode: shows a single monitor preview.
  */
 function updateFitPreview() {
-  const monitor = getSelectedDisplay();
-  if (!monitor || !mediaDimensions) return;
+  if (!mediaDimensions) return;
 
-  const monW = monitor.resolutionWidth;
-  const monH = monitor.resolutionHeight;
   const imgW = mediaDimensions.w;
   const imgH = mediaDimensions.h;
 
-  // Show dimension info
-  dimInfo.textContent = `${monW}×${monH} ← ${imgW}×${imgH}`;
-  dimInfo.style.display = 'inline-block';
-
-  const imgAspect = imgW / imgH;
-  const monAspect = monW / monH;
-
   // Determine which image source to use for the preview
-  // For images/gifs: use the actual file. For videos: use the white area canvas. For HTML: template only.
   const isVideo = currentFile && currentFile.wallpaperType === 'video';
   const isImage = currentFile && (currentFile.wallpaperType === 'image' || currentFile.wallpaperType === 'gif');
   const hasRealThumb = isImage || (isVideo && videoThumbnailUrl);
   const thumbUrl = isVideo ? videoThumbnailUrl : (isImage ? currentImageUrl : null);
+
+  const isSpanning = currentMode === 'spanning';
+
+  // Determine the canvas dimensions (what the wallpaper is fit to)
+  let canvasW, canvasH;
+  if (isSpanning) {
+    const vd = getVirtualDesktopBounds();
+    canvasW = vd.width;
+    canvasH = vd.height;
+  } else {
+    const monitor = getSelectedDisplay();
+    if (!monitor) return;
+    canvasW = monitor.resolutionWidth;
+    canvasH = monitor.resolutionHeight;
+  }
+
+  // Show dimension info
+  if (isSpanning) {
+    dimInfo.textContent = `${canvasW}×${canvasH} (span) ← ${imgW}×${imgH}`;
+  } else {
+    dimInfo.textContent = `${canvasW}×${canvasH} ← ${imgW}×${imgH}`;
+  }
+  dimInfo.style.display = 'inline-block';
 
   const fitModes = ['cover', 'contain', 'stretch', 'center'];
   const currentFit = getSelectedFit();
@@ -416,49 +483,21 @@ function updateFitPreview() {
     const previewMon = document.getElementById(`fit-vis-${mode}`);
     if (!previewMon) return;
 
+    // Clear any previous spanning overlays
+    previewMon.querySelectorAll('.span-monitor-outline').forEach(el => el.remove());
+
     const imageEl = previewMon.querySelector('.fit-preview-image');
     const templateEl = previewMon.querySelector('.fit-template');
     if (!imageEl || !templateEl) return;
 
-    // Set monitor aspect ratio
-    previewMon.style.aspectRatio = `${monW} / ${monH}`;
+    // Set aspect ratio to match the canvas
+    previewMon.style.aspectRatio = `${canvasW} / ${canvasH}`;
 
-    // Calculate image rect as percentages
-    let iLeft, iTop, iWidth, iHeight;
+    // Calculate the wallpaper rect
+    const rect = calcFitRect(mode, imgW, imgH, canvasW, canvasH);
+    const posStyle = `left:${rect.left}%;top:${rect.top}%;width:${rect.width}%;height:${rect.height}%;`;
 
-    switch (mode) {
-      case 'cover':
-        if (imgAspect > monAspect) {
-          iHeight = 100; iWidth = (imgAspect / monAspect) * 100;
-          iTop = 0; iLeft = -(iWidth - 100) / 2;
-        } else {
-          iWidth = 100; iHeight = (monAspect / imgAspect) * 100;
-          iLeft = 0; iTop = -(iHeight - 100) / 2;
-        }
-        break;
-      case 'contain':
-        if (imgAspect > monAspect) {
-          iWidth = 100; iHeight = (monAspect / imgAspect) * 100;
-          iLeft = 0; iTop = (100 - iHeight) / 2;
-        } else {
-          iHeight = 100; iWidth = (imgAspect / monAspect) * 100;
-          iTop = 0; iLeft = (100 - iWidth) / 2;
-        }
-        break;
-      case 'stretch':
-        iLeft = 0; iTop = 0; iWidth = 100; iHeight = 100;
-        break;
-      case 'center':
-        iWidth = Math.min((imgW / monW) * 100, 200);
-        iHeight = Math.min((imgH / monH) * 100, 200);
-        iLeft = (100 - iWidth) / 2;
-        iTop = (100 - iHeight) / 2;
-        break;
-    }
-
-    const posStyle = `left:${iLeft}%;top:${iTop}%;width:${iWidth}%;height:${iHeight}%;`;
-
-    // Always show the dimensional template
+    // Show the dimensional template
     templateEl.style.cssText = posStyle;
 
     // Show the actual image/thumbnail if available
@@ -468,6 +507,34 @@ function updateFitPreview() {
     } else {
       imageEl.style.cssText = posStyle;
       previewMon.classList.remove('has-thumb');
+    }
+
+    // In spanning mode: overlay monitor boundary outlines
+    if (isSpanning && displays.length > 1) {
+      const vd = getVirtualDesktopBounds();
+      previewMon.classList.add('spanning-preview');
+
+      displays.forEach((d, i) => {
+        const outline = document.createElement('div');
+        outline.className = 'span-monitor-outline';
+
+        const mLeft = ((d.bounds.x - vd.x) / vd.width) * 100;
+        const mTop = ((d.bounds.y - vd.y) / vd.height) * 100;
+        const mWidth = (d.bounds.width / vd.width) * 100;
+        const mHeight = (d.bounds.height / vd.height) * 100;
+
+        outline.style.cssText = `left:${mLeft}%;top:${mTop}%;width:${mWidth}%;height:${mHeight}%;`;
+
+        // Monitor number label
+        const label = document.createElement('span');
+        label.className = 'span-monitor-label';
+        label.textContent = i + 1;
+        outline.appendChild(label);
+
+        previewMon.appendChild(outline);
+      });
+    } else {
+      previewMon.classList.remove('spanning-preview');
     }
 
     // Highlight the active mode
