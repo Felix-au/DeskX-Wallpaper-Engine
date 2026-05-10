@@ -10,7 +10,7 @@ module.exports = {
     // Windows-specific metadata
     win32metadata: {
       CompanyName: 'DeskX',
-      ProductName: 'DeskX: Wallpaper Engine',
+      ProductName: 'DeskX Wallpaper Engine',
       FileDescription: 'Desktop Wallpaper Manager',
       OriginalFilename: 'DeskX.exe',
     },

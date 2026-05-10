@@ -4,6 +4,44 @@
 
 const { app, BrowserWindow, ipcMain, dialog, globalShortcut, screen } = require('electron');
 const path = require('path');
+
+// ── Squirrel Startup Events (required for installer/updater) ────────────
+// Squirrel launches the app with --squirrel-* args during install/update/uninstall.
+// We must handle these and quit immediately, or the installer will hang.
+// Note: --squirrel-firstrun is a normal launch flag, NOT an install event.
+if (process.platform === 'win32') {
+  const squirrelEvents = ['--squirrel-install', '--squirrel-updated', '--squirrel-uninstall', '--squirrel-obsolete'];
+  const squirrelArg = process.argv.find(arg => squirrelEvents.includes(arg));
+  if (squirrelArg) {
+    const { spawn } = require('child_process');
+    const updateDotExe = path.resolve(
+      path.dirname(process.execPath), '..', 'Update.exe'
+    );
+
+    const spawnUpdate = (args) => {
+      try {
+        spawn(updateDotExe, args, { detached: true });
+      } catch (e) {
+        // Update.exe not found — ignore
+      }
+    };
+
+    switch (squirrelArg) {
+      case '--squirrel-install':
+      case '--squirrel-updated':
+        spawnUpdate(['--createShortcut', path.basename(process.execPath)]);
+        break;
+      case '--squirrel-uninstall':
+        spawnUpdate(['--removeShortcut', path.basename(process.execPath)]);
+        break;
+    }
+
+    // Exit immediately — Squirrel will relaunch after install/update
+    setTimeout(() => app.quit(), 1000);
+    return;
+  }
+}
+
 const wallpaperManager = require('./wallpaper-manager');
 const settingsStore = require('./settings-store');
 const trayModule = require('./tray');
@@ -11,7 +49,9 @@ const trayModule = require('./tray');
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
+  console.log('[Main] Another instance is running — quitting.');
   app.quit();
+  return;
 }
 
 let settingsWindow = null;
