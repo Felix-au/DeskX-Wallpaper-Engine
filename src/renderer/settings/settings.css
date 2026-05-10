@@ -78,8 +78,7 @@ html, body {
 }
 
 .logo-icon {
-  color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
-  background: var(--accent); padding: 2px 5px; border-radius: 4px;
+  height: 20px; width: auto; border-radius: 4px; object-fit: contain;
 }
 
 .titlebar-controls { display: flex; -webkit-app-region: no-drag; }
