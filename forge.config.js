@@ -2,7 +2,7 @@ module.exports = {
   packagerConfig: {
     name: 'DeskX',
     executableName: 'DeskX',
-    icon: './assets/icon',
+    icon: './assets/DeskXLogo',
     // Use asar but unpack native modules so they load correctly
     asar: {
       unpack: '**/{koffi,node_modules/koffi}/**',
@@ -29,7 +29,7 @@ module.exports = {
       config: {
         name: 'DeskX',
         setupExe: 'DeskX-Setup.exe',
-        setupIcon: './assets/icon.ico',
+        setupIcon: './assets/DeskXLogo.ico',
         noMsi: true,
       },
     },

@@ -21,7 +21,7 @@ let isMuted = true;
  */
 function createTray(callbacks) {
   // Create a simple icon (16x16 colored square)
-  const iconPath = path.join(__dirname, '..', '..', 'assets', 'tray-icon.png');
+  const iconPath = path.join(__dirname, '..', '..', 'assets', 'DeskXLogo.png');
   
   // Try to load the icon, fallback to a generated one
   let icon;

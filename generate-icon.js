@@ -212,11 +212,11 @@ const pngBuffers = sizes.map(size => ({
 }));
 
 const icoBuffer = buildICO(pngBuffers);
-const outPath = path.join(__dirname, 'assets', 'icon.ico');
+const outPath = path.join(__dirname, 'assets', 'DeskXLogo.ico');
 fs.writeFileSync(outPath, icoBuffer);
 console.log(`ICO generated: ${outPath} (${icoBuffer.length} bytes, ${sizes.length} sizes)`);
 
 // Also save 256px PNG as app icon
 const png256 = pngBuffers.find(p => p.size === 256).png;
-fs.writeFileSync(path.join(__dirname, 'assets', 'icon.png'), png256);
-console.log('PNG icon saved: assets/icon.png');
+fs.writeFileSync(path.join(__dirname, 'assets', 'DeskXLogo.png'), png256);
+console.log('PNG icon saved: assets/DeskXLogo.png');
