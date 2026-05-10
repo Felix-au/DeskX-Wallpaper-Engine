@@ -117,35 +117,35 @@ Supported wallpaper types:
 │  ┌────────────────────────────────────────────────────────────┐  │
 │  │                   Main Process (Node.js)                   │  │
 │  │                                                            │  │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐   │  │
-│  │  │ Settings     │  │ Wallpaper    │  │ Win32          │   │  │
-│  │  │ Store        │  │ Manager      │  │ Wallpaper      │   │  │
-│  │  │              │  │              │  │                │   │  │
-│  │  │ electron-    │  │ Creates      │  │ FindWindowW    │   │  │
-│  │  │ store JSON   │  │ BrowserWins  │  │ EnumWindows    │   │  │
-│  │  │ persistence  │  │ per monitor  │  │ SetParent      │   │  │
-│  │  └──────────────┘  │ or spanning  │  │ SetWindowPos   │   │  │
-│  │                    └──────┬───────┘  │ (via koffi)    │   │  │
-│  │                           │attach    └───────┬────────┘   │  │
-│  │                           └──────────────────┘            │  │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐    │  │
+│  │  │ Settings     │  │ Wallpaper    │  │ Win32          │    │  │
+│  │  │ Store        │  │ Manager      │  │ Wallpaper      │    │  │
+│  │  │              │  │              │  │                │    │  │
+│  │  │ electron-    │  │ Creates      │  │ FindWindowW    │    │  │
+│  │  │ store JSON   │  │ BrowserWins  │  │ EnumWindows    │    │  │
+│  │  │ persistence  │  │ per monitor  │  │ SetParent      │    │  │
+│  │  └──────────────┘  │ or spanning  │  │ SetWindowPos   │    │  │
+│  │                    └──────┬───────┘  │ (via koffi)    │    │  │
+│  │                           │attach    └───────┬────────┘    │  │
+│  │                           └──────────────────┘             │  │
 │  │                                                            │  │
-│  │  ┌──────────────┐  ┌──────────────────────────────────┐   │  │
-│  │  │ System Tray  │  │ IPC Bridge (preload.js)          │   │  │
-│  │  │ (tray.js)    │  │ contextBridge.exposeInMainWorld  │   │  │
-│  │  └──────────────┘  └──────────────────────────────────┘   │  │
+│  │  ┌──────────────┐  ┌──────────────────────────────────┐    │  │
+│  │  │ System Tray  │  │ IPC Bridge (preload.js)          │    │  │
+│  │  │ (tray.js)    │  │ contextBridge.exposeInMainWorld  │    │  │
+│  │  └──────────────┘  └──────────────────────────────────┘    │  │
 │  └────────────────────────────────────────────────────────────┘  │
 │                                                                  │
 │  ┌────────────────────────────────────────────────────────────┐  │
 │  │               Renderer Processes (Chromium)                │  │
 │  │                                                            │  │
-│  │  ┌──────────────────┐    ┌─────────────────────────────┐  │  │
-│  │  │ Settings Window  │    │ Wallpaper Window(s)         │  │  │
-│  │  │                  │    │                             │  │  │
-│  │  │ Monitor layout   │    │ <img> / <video> / <iframe>  │  │  │
-│  │  │ File browser     │    │ per-monitor or spanning     │  │  │
-│  │  │ Fit preview grid │    │ attached to WorkerW         │  │  │
-│  │  │ Options panel    │    │                             │  │  │
-│  │  └──────────────────┘    └─────────────────────────────┘  │  │
+│  │  ┌──────────────────┐    ┌─────────────────────────────┐   │  │
+│  │  │ Settings Window  │    │ Wallpaper Window(s)         │   │  │
+│  │  │                  │    │                             │   │  │
+│  │  │ Monitor layout   │    │ <img> / <video> / <iframe>  │   │  │
+│  │  │ File browser     │    │ per-monitor or spanning     │   │  │
+│  │  │ Fit preview grid │    │ attached to WorkerW         │   │  │
+│  │  │ Options panel    │    │                             │   │  │
+│  │  └──────────────────┘    └─────────────────────────────┘   │  │
 │  └────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────┘
 ```
