@@ -493,40 +493,58 @@ function updateFitPreview() {
     // Set aspect ratio to match the canvas
     previewMon.style.aspectRatio = `${canvasW} / ${canvasH}`;
 
-    // Calculate the wallpaper rect
+    // Calculate the wallpaper rect (percentages of the canvas)
     const rect = calcFitRect(mode, imgW, imgH, canvasW, canvasH);
-    const posStyle = `left:${rect.left}%;top:${rect.top}%;width:${rect.width}%;height:${rect.height}%;`;
 
-    // Show the dimensional template
-    templateEl.style.cssText = posStyle;
-
-    // Show the actual image/thumbnail if available
-    if (hasRealThumb && thumbUrl) {
-      imageEl.style.cssText = posStyle + `background-image:url("${thumbUrl}");background-size:100% 100%;background-repeat:no-repeat;`;
-      previewMon.classList.add('has-thumb');
-    } else {
-      imageEl.style.cssText = posStyle;
-      previewMon.classList.remove('has-thumb');
-    }
-
-    // In spanning mode: overlay monitor boundary outlines
     if (isSpanning && displays.length > 1) {
-      const vd = getVirtualDesktopBounds();
+      // ── Spanning: split wallpaper into per-monitor tiles ──
+      // Hide the single full-span layers
+      imageEl.style.cssText = 'display:none;';
+      templateEl.style.cssText = 'display:none;';
       previewMon.classList.add('spanning-preview');
+
+      const vd = getVirtualDesktopBounds();
+      const gap = 1.2; // percentage inset on each side
 
       displays.forEach((d, i) => {
         const outline = document.createElement('div');
         outline.className = 'span-monitor-outline';
 
-        // Calculate raw position as percentage of virtual desktop
+        // Monitor position as percentage of virtual desktop
         const mLeft = ((d.bounds.x - vd.x) / vd.width) * 100;
         const mTop = ((d.bounds.y - vd.y) / vd.height) * 100;
         const mWidth = (d.bounds.width / vd.width) * 100;
         const mHeight = (d.bounds.height / vd.height) * 100;
 
-        // Inset each outline to create a visible gap between monitors
-        const gap = 1.2; // percentage gap on each side
-        outline.style.cssText = `left:${mLeft + gap}%;top:${mTop + gap}%;width:${mWidth - gap * 2}%;height:${mHeight - gap * 2}%;`;
+        outline.style.cssText = `left:${mLeft + gap}%;top:${mTop + gap}%;width:${mWidth - gap * 2}%;height:${mHeight - gap * 2}%;overflow:hidden;`;
+
+        // Create a wallpaper slice inside this monitor tile
+        // The slice is positioned so that the full wallpaper rect
+        // maps correctly when viewed through this monitor's viewport
+        const slice = document.createElement('div');
+        slice.className = 'span-wallpaper-slice';
+
+        // Transform wallpaper rect from virtual-desktop % to monitor-local %
+        const sliceLeft = ((rect.left - mLeft) / mWidth) * 100;
+        const sliceTop = ((rect.top - mTop) / mHeight) * 100;
+        const sliceWidth = (rect.width / mWidth) * 100;
+        const sliceHeight = (rect.height / mHeight) * 100;
+
+        let sliceStyle = `left:${sliceLeft}%;top:${sliceTop}%;width:${sliceWidth}%;height:${sliceHeight}%;`;
+
+        if (hasRealThumb && thumbUrl) {
+          sliceStyle += `background-image:url("${thumbUrl}");background-size:100% 100%;background-repeat:no-repeat;`;
+        }
+        slice.style.cssText = sliceStyle;
+        outline.appendChild(slice);
+
+        // Also add a template overlay for the same area (visible when no thumb)
+        if (!hasRealThumb || !thumbUrl) {
+          const tpl = document.createElement('div');
+          tpl.className = 'span-wallpaper-template';
+          tpl.style.cssText = `left:${sliceLeft}%;top:${sliceTop}%;width:${sliceWidth}%;height:${sliceHeight}%;`;
+          outline.appendChild(tpl);
+        }
 
         // Monitor number label
         const label = document.createElement('span');
@@ -537,7 +555,19 @@ function updateFitPreview() {
         previewMon.appendChild(outline);
       });
     } else {
+      // ── Single monitor preview ──
       previewMon.classList.remove('spanning-preview');
+      const posStyle = `left:${rect.left}%;top:${rect.top}%;width:${rect.width}%;height:${rect.height}%;`;
+
+      templateEl.style.cssText = posStyle;
+
+      if (hasRealThumb && thumbUrl) {
+        imageEl.style.cssText = posStyle + `background-image:url("${thumbUrl}");background-size:100% 100%;background-repeat:no-repeat;`;
+        previewMon.classList.add('has-thumb');
+      } else {
+        imageEl.style.cssText = posStyle;
+        previewMon.classList.remove('has-thumb');
+      }
     }
 
     // Highlight the active mode

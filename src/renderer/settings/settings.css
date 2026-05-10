@@ -478,6 +478,27 @@ html, body {
   background: #080810;
 }
 
+/* Wallpaper slice inside each monitor tile (clipped by overflow:hidden on parent) */
+.span-wallpaper-slice {
+  position: absolute;
+  background-repeat: no-repeat;
+  border-radius: 1px;
+}
+
+/* Template hatch pattern for when no thumbnail is available */
+.span-wallpaper-template {
+  position: absolute;
+  border: 1.5px dashed rgba(124, 92, 255, 0.5);
+  border-radius: 2px;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(124, 92, 255, 0.06),
+    rgba(124, 92, 255, 0.06) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
 /* ── Scrollbar ─────────────────────────────────────────────────────── */
 
 ::-webkit-scrollbar { width: 6px; }
