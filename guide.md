@@ -9,7 +9,7 @@ A Windows desktop wallpaper engine that supports images, GIFs, videos, and inter
 
 ### Option A — Installer (Recommended)
 
-1. Download **`DeskX-Setup.exe`** from [Releases](https://github.com/Felix-au/DeskX/releases)
+1. Download **`DeskX-Setup.exe`** from [Releases](https://github.com/Felix-au/DeskX-Wallpaper-Engine/releases)
 2. Double-click to install
 3. DeskX launches automatically after installation
 
@@ -22,7 +22,7 @@ A Windows desktop wallpaper engine that supports images, GIFs, videos, and inter
 ### Option C — From Source
 
 ```bash
-git clone https://github.com/Felix-au/DeskX.git
+git clone https://github.com/Felix-au/DeskX-Wallpaper-Engine.git
 cd DeskX
 npm install
 npm run dev

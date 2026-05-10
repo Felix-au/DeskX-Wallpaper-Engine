@@ -174,7 +174,7 @@ SetWindowPos(x, y, w, h) → reposition for correct monitor / spanning bounds
 
 ### Option A — Standalone EXE (Recommended)
 
-Download **`DeskX-Setup.exe`** from [Releases](https://github.com/Felix-au/DeskX/releases) and run it.
+Download **`DeskX-Setup.exe`** from [Releases](https://github.com/Felix-au/DeskX-Wallpaper-Engine/releases) and run it.
 
 ```
 Just double-click DeskX-Setup.exe → installs and launches automatically
@@ -189,7 +189,7 @@ Download **`DeskX-win32-x64-1.0.0.zip`**, extract anywhere, and run `DeskX.exe`.
 ### Option C — From Source (Development)
 
 ```bash
-git clone https://github.com/Felix-au/DeskX.git
+git clone https://github.com/Felix-au/DeskX-Wallpaper-Engine.git
 cd DeskX
 npm install
 npm run dev
