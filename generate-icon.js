@@ -5,6 +5,13 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 
+// Skip generation if custom logo already exists
+const icoPath = path.join(__dirname, 'assets', 'DeskXLogo.ico');
+if (fs.existsSync(icoPath)) {
+  console.log('DeskXLogo.ico already exists — skipping icon generation.');
+  process.exit(0);
+}
+
 function createPNGBuffer(size, drawFn) {
   const pixels = Buffer.alloc(size * size * 4, 0);
   drawFn(pixels, size);
