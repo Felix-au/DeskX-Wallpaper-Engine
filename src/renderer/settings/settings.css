@@ -1,5 +1,5 @@
 /* ====================================================================
-   Wallpaper Engine – Settings UI
+   DeskX: Wallpaper Engine – Settings UI
    Premium dark glassmorphism design system
    ==================================================================== */
 
@@ -77,7 +77,10 @@ html, body {
   font-size: 13px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px;
 }
 
-.logo-icon { color: var(--accent); font-size: 14px; }
+.logo-icon {
+  color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  background: var(--accent); padding: 2px 5px; border-radius: 4px;
+}
 
 .titlebar-controls { display: flex; -webkit-app-region: no-drag; }
 

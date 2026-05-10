@@ -1,5 +1,5 @@
 // ===========================================================================
-// Wallpaper Engine – Wallpaper Manager
+// DeskX: Wallpaper Engine – Wallpaper Manager
 // Manages wallpaper BrowserWindows for each monitor
 // ===========================================================================
 

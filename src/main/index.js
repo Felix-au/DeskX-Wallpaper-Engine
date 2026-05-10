@@ -1,5 +1,5 @@
 // ===========================================================================
-// Wallpaper Engine – Main Process Entry Point
+// DeskX: Wallpaper Engine – Main Process Entry Point
 // ===========================================================================
 
 const { app, BrowserWindow, ipcMain, dialog, globalShortcut, screen } = require('electron');

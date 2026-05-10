@@ -1,7 +1,7 @@
 module.exports = {
   packagerConfig: {
-    name: 'Wallpaper Engine',
-    executableName: 'WallpaperEngine',
+    name: 'DeskX',
+    executableName: 'DeskX',
     icon: './assets/icon',
     // Use asar but unpack native modules so they load correctly
     asar: {
@@ -9,10 +9,10 @@ module.exports = {
     },
     // Windows-specific metadata
     win32metadata: {
-      CompanyName: 'Wallpaper Engine',
-      ProductName: 'Wallpaper Engine',
+      CompanyName: 'DeskX',
+      ProductName: 'DeskX: Wallpaper Engine',
       FileDescription: 'Desktop Wallpaper Manager',
-      OriginalFilename: 'WallpaperEngine.exe',
+      OriginalFilename: 'DeskX.exe',
     },
     // Don't include dev files in the package
     ignore: [
@@ -27,8 +27,8 @@ module.exports = {
     {
       name: '@electron-forge/maker-squirrel',
       config: {
-        name: 'WallpaperEngine',
-        setupExe: 'WallpaperEngine-Setup.exe',
+        name: 'DeskX',
+        setupExe: 'DeskX-Setup.exe',
         setupIcon: './assets/icon.ico',
         noMsi: true,
       },

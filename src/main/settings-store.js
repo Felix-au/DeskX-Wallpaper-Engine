@@ -1,5 +1,5 @@
 // ===========================================================================
-// Wallpaper Engine – Settings Store
+// DeskX: Wallpaper Engine – Settings Store
 // Persistent JSON-based configuration using electron-store
 // ===========================================================================
 

@@ -1,4 +1,4 @@
-# Wallpaper Engine – Implementation Plan
+# DeskX: Wallpaper Engine – Implementation Plan
 
 A Windows desktop application that lets you set **static images, GIFs, videos, and HTML pages** as your desktop wallpaper — with full **multi-monitor** support, **sound control**, and **interactive HTML** mode.
 

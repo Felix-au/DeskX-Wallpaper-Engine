@@ -1,5 +1,5 @@
 // ===========================================================================
-// Wallpaper Engine – Win32 Wallpaper Attachment via Koffi
+// DeskX: Wallpaper Engine – Win32 Wallpaper Attachment via Koffi
 // Uses the WorkerW technique to embed windows behind desktop icons
 //
 // TECHNIQUE:

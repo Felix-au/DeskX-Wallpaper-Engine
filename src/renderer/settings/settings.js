@@ -1,5 +1,5 @@
 // ===========================================================================
-// Wallpaper Engine – Settings UI Logic
+// DeskX: Wallpaper Engine – Settings UI Logic
 // ===========================================================================
 
 const API = window.wallpaperAPI;

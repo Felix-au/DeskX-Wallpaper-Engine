@@ -1,5 +1,5 @@
-// Generate a proper .ico file for the Wallpaper Engine executable
-// Creates a 256x256 PNG-based ICO with a diamond gradient icon
+// Generate a proper .ico file for the DeskX: Wallpaper Engine executable
+// Creates a 256x256 PNG-based ICO with a "DX" logo icon
 
 const fs = require('fs');
 const path = require('path');
@@ -64,50 +64,112 @@ function crc32(buf) {
   return c ^ 0xFFFFFFFF;
 }
 
-// Draw a diamond gradient with glow
+// Draw the DeskX logo — rounded rectangle with "DX" lettermark
 function drawIcon(pixels, size) {
   const cx = size / 2, cy = size / 2;
-  const radius = size * 0.38;
+  const pad = size * 0.08;
+  const cornerR = size * 0.18;
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const i = (y * size + x) * 4;
-      const dx = x - cx, dy = y - cy;
 
-      // Diamond shape (rotated square)
-      const diamondDist = Math.abs(dx) + Math.abs(dy);
-      const t = Math.max(0, 1 - diamondDist / radius);
+      // Rounded rectangle SDF
+      const rx = Math.abs(x - cx) - (cx - pad - cornerR);
+      const ry = Math.abs(y - cy) - (cy - pad - cornerR);
+      const dist = Math.sqrt(Math.max(rx, 0) ** 2 + Math.max(ry, 0) ** 2) +
+                   Math.min(Math.max(rx, ry), 0) - cornerR;
 
-      if (t > 0) {
-        // Purple-to-blue gradient
-        const gradT = (dx + dy + radius * 2) / (radius * 4);
-        const r = Math.floor(100 + gradT * 80);
-        const g = Math.floor(50 + gradT * 60);
-        const b = Math.floor(180 + gradT * 75);
+      if (dist < 1.5) {
+        // Inside the rounded rect — gradient fill
+        const nx = (x - pad) / (size - pad * 2);
+        const ny = (y - pad) / (size - pad * 2);
+        const gradT = nx * 0.6 + ny * 0.4;
 
-        // Smooth edges
-        const edgeSoft = Math.min(1, t * 8);
-        const alpha = Math.floor(edgeSoft * 255);
+        // Deep purple to vivid blue gradient
+        const r = Math.floor(65 + gradT * 60);
+        const g = Math.floor(20 + gradT * 50);
+        const b = Math.floor(160 + gradT * 95);
 
-        // Inner highlight
-        const highlight = Math.max(0, 1 - Math.sqrt(dx * dx + dy * dy) / (radius * 0.5));
-        const hBoost = highlight * 60;
+        // Anti-alias edge
+        const aa = Math.min(1, Math.max(0, 1 - dist));
+        pixels[i]     = r;
+        pixels[i + 1] = g;
+        pixels[i + 2] = b;
+        pixels[i + 3] = Math.floor(aa * 255);
 
-        pixels[i]     = Math.min(255, r + hBoost);
-        pixels[i + 1] = Math.min(255, g + hBoost);
-        pixels[i + 2] = Math.min(255, b + hBoost);
-        pixels[i + 3] = alpha;
-      } else {
-        // Outer glow
-        const glowDist = diamondDist - radius;
-        const glowRadius = size * 0.08;
-        if (glowDist < glowRadius) {
-          const glow = 1 - glowDist / glowRadius;
-          pixels[i]     = 124;
-          pixels[i + 1] = 92;
-          pixels[i + 2] = 255;
-          pixels[i + 3] = Math.floor(glow * glow * 80);
+        // ── Draw "DX" lettermark ──
+        // Normalized coords within the rounded rect
+        const lx = (x - pad) / (size - pad * 2); // 0..1
+        const ly = (y - pad) / (size - pad * 2); // 0..1
+
+        const letterTop = 0.25, letterBot = 0.75;
+        const weight = 0.075; // stroke weight
+
+        if (ly >= letterTop && ly <= letterBot) {
+          let isLetter = false;
+
+          // "D" — left half (lx: 0.12 to 0.48)
+          const dLeft = 0.14, dRight = 0.46;
+          const dMidX = (dLeft + dRight) / 2;
+          const dMidY = (letterTop + letterBot) / 2;
+          const dRadX = (dRight - dLeft) / 2;
+          const dRadY = (letterBot - letterTop) / 2;
+
+          // D: vertical bar on the left
+          if (lx >= dLeft && lx <= dLeft + weight && ly >= letterTop && ly <= letterBot) {
+            isLetter = true;
+          }
+          // D: top horizontal
+          if (ly >= letterTop && ly <= letterTop + weight && lx >= dLeft && lx <= dMidX + weight) {
+            isLetter = true;
+          }
+          // D: bottom horizontal
+          if (ly >= letterBot - weight && ly <= letterBot && lx >= dLeft && lx <= dMidX + weight) {
+            isLetter = true;
+          }
+          // D: right arc (elliptical)
+          const eX = (lx - dMidX) / (dRadX * 0.85);
+          const eY = (ly - dMidY) / (dRadY);
+          const ellipse = eX * eX + eY * eY;
+          if (ellipse <= 1.0 && ellipse >= (1 - weight * 5.5) && lx > dMidX) {
+            isLetter = true;
+          }
+
+          // "X" — right half (lx: 0.54 to 0.88)
+          const xLeft = 0.54, xRight = 0.88;
+          const xWidth = xRight - xLeft;
+          const xHeight = letterBot - letterTop;
+
+          const nlx = (lx - xLeft) / xWidth;   // 0..1 within X bounds
+          const nly = (ly - letterTop) / xHeight; // 0..1 within X bounds
+
+          if (lx >= xLeft && lx <= xRight) {
+            // Diagonal \ stroke
+            if (Math.abs(nlx - nly) < weight * 2.2) {
+              isLetter = true;
+            }
+            // Diagonal / stroke
+            if (Math.abs(nlx - (1 - nly)) < weight * 2.2) {
+              isLetter = true;
+            }
+          }
+
+          if (isLetter && dist < 0) {
+            // White letter with slight transparency for depth
+            pixels[i]     = 255;
+            pixels[i + 1] = 255;
+            pixels[i + 2] = 255;
+            pixels[i + 3] = Math.floor(aa * 240);
+          }
         }
+      } else if (dist < size * 0.04) {
+        // Outer glow
+        const glow = 1 - dist / (size * 0.04);
+        pixels[i]     = 90;
+        pixels[i + 1] = 50;
+        pixels[i + 2] = 220;
+        pixels[i + 3] = Math.floor(glow * glow * 60);
       }
     }
   }

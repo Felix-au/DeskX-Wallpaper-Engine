@@ -1,5 +1,5 @@
 // ===========================================================================
-// Wallpaper Engine – Preload Script
+// DeskX: Wallpaper Engine – Preload Script
 // Secure IPC bridge between main and renderer processes
 // ===========================================================================
 

@@ -1,5 +1,5 @@
 // ===========================================================================
-// Wallpaper Engine – System Tray
+// DeskX: Wallpaper Engine – System Tray
 // Manages the system tray icon and context menu
 // ===========================================================================
 
@@ -50,7 +50,7 @@ function createTray(callbacks) {
   }
 
   tray = new Tray(icon);
-  tray.setToolTip('Wallpaper Engine');
+  tray.setToolTip('DeskX: Wallpaper Engine');
 
   updateMenu(callbacks);
 
