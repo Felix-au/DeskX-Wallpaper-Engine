@@ -74,6 +74,7 @@ function createSettingsWindow() {
     backgroundColor: '#0a0a1a',
     show: false,
     resizable: true,
+    icon: path.join(__dirname, '..', '..', 'assets', 'DeskXLogo.png'),
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'preload.js'),
       contextIsolation: true,

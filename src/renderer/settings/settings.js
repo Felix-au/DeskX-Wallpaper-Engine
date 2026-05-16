@@ -771,35 +771,39 @@ function renderPickerPreviews() {
 
 function renderWidgetEditor(config) {
   panelWidgets.style.display = 'block';
-  updateWidgetPreviewArea();
   
-  const widgets = config ? (config.widgets || []) : [];
-  widgetPreviewArea.querySelectorAll('.draggable-widget').forEach(el => el.remove());
+  // Wait for DOM reflow to get accurate container dimensions
+  setTimeout(() => {
+    updateWidgetPreviewArea();
+    
+    const widgets = config ? (config.widgets || []) : [];
+    widgetPreviewArea.querySelectorAll('.draggable-widget').forEach(el => el.remove());
 
-  widgets.forEach((w, index) => {
-    const el = document.createElement('div');
-    el.className = 'draggable-widget';
-    el.dataset.id = index;
-    el.style.left = `${w.x}%`;
-    el.style.top = `${w.y}%`;
-    el.style.transform = `translate(-50%, -50%) scale(${(w.scale || 1) * editorScaleFactor})`;
-    
-    renderWidgetToElement(w, el);
-    
-    el.addEventListener('mousedown', (e) => onWidgetDragStart(e, index));
-    widgetPreviewArea.appendChild(el);
-    
-    if (selectedWidgetId === index) {
-      el.classList.add('selected');
+    widgets.forEach((w, index) => {
+      const el = document.createElement('div');
+      el.className = 'draggable-widget';
+      el.dataset.id = index;
+      el.style.left = `${w.x}%`;
+      el.style.top = `${w.y}%`;
+      el.style.transform = `translate(-50%, -50%) scale(${(w.scale || 1) * editorScaleFactor})`;
+      
+      renderWidgetToElement(w, el);
+      
+      el.addEventListener('mousedown', (e) => onWidgetDragStart(e, index));
+      widgetPreviewArea.appendChild(el);
+      
+      if (selectedWidgetId === index) {
+        el.classList.add('selected');
+      }
+    });
+
+    if (selectedWidgetId !== null && widgets[selectedWidgetId]) {
+      updateInspector(widgets[selectedWidgetId]);
+    } else {
+      selectedWidgetId = null; 
+      widgetInspector.style.display = 'none';
     }
-  });
-
-  if (selectedWidgetId !== null && widgets[selectedWidgetId]) {
-    updateInspector(widgets[selectedWidgetId]);
-  } else {
-    selectedWidgetId = null; // Ensure it's null if not found
-    widgetInspector.style.display = 'none';
-  }
+  }, 0);
 }
 
 function hideWidgetEditor() {
