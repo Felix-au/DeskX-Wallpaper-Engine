@@ -83,6 +83,11 @@ async function init() {
     loadCurrentConfig();
     updateAutostartUI();
     initWidgetEvents();
+    
+    document.getElementById('nav-widgets-btn').addEventListener('click', () => {
+      panelWidgets.scrollIntoView({ behavior: 'smooth' });
+    });
+
     setStatus('Ready');
   } catch (err) {
     console.error('[Settings] Init error:', err);
@@ -210,7 +215,12 @@ function loadGlobalConfig() {
     showPreview(config);
     showOptions(config);
     renderWidgetEditor(config);
-  } else { currentFile = null; hidePreview(); hideOptions(); hideWidgetEditor(); }
+  } else { 
+    currentFile = null; 
+    hidePreview(); 
+    hideOptions(); 
+    renderWidgetEditor(config || { widgets: [] });
+  }
 }
 
 function loadMonitorConfig(monitorId) {
@@ -627,7 +637,6 @@ function showOptions(config) {
 
 function hideOptions() {
   panelOptions.style.display = 'none';
-  panelWidgets.style.display = 'none';
   if (dimInfo) dimInfo.style.display = 'none';
 }
 
