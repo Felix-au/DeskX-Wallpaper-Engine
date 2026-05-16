@@ -277,17 +277,6 @@ async function saveConfig(config) {
       settings = await API.setMonitorConfig(selectedMonitorId, config);
     } else {
       settings = await API.setGlobalConfig(config);
-      
-      if (currentMode === 'same') {
-        // Save widgets per monitor
-        const areas = widgetEditorCanvasesWrapper.querySelectorAll('.widget-preview-area');
-        for (const area of areas) {
-          const mId = area.dataset.monitorId;
-          const widgets = getWidgetsFromArea(area, mId);
-          await API.setMonitorConfig(mId, { widgets });
-        }
-        settings = await API.getSettings();
-      }
     }
     renderMonitors();
   } catch (err) {
@@ -673,7 +662,7 @@ function initWidgetEvents() {
   });
 
   btnDeleteWidget.addEventListener('click', () => {
-    if (selectedWidgetId !== null) deleteWidget(selectedWidgetId);
+    if (selectedWidgetIndex !== null) deleteWidget(selectedWidgetIndex);
   });
 
   window.addEventListener('mousemove', onWidgetDragMove);
@@ -1074,6 +1063,14 @@ function updateInspector(widget) {
       saveCurrentWidgets();
     });
   }
+
+  // Delete button
+  const btnDelete = document.createElement('button');
+  btnDelete.className = 'btn-delete-widget';
+  btnDelete.style.marginTop = '20px';
+  btnDelete.textContent = 'Delete Widget';
+  btnDelete.onclick = () => deleteWidget(selectedWidgetIndex);
+  inspectorContent.appendChild(btnDelete);
 }
 
 function addInspectorRange(label, value, min, max, step, onChange) {
@@ -1192,17 +1189,14 @@ async function addNewWidget(type) {
     config.widgets = widgets;
     await saveConfig(config);
   } else if (targetMonitorId) {
-    if (!settings.monitors[targetMonitorId]) settings.monitors[targetMonitorId] = {};
-    settings.monitors[targetMonitorId].widgets = widgets;
+    await API.setMonitorConfig(targetMonitorId, { widgets });
     
-    // Save current state
-    if (currentMode === 'different') {
-      await saveConfig(settings.monitors[selectedMonitorId]);
-    } else {
-      // In same mode, save global config which will also trigger save of per-monitor widgets
-      const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
-      await saveConfig(config);
-    }
+    // Also save global config to ensure consistency
+    const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
+    await saveConfig(config);
+    
+    // Refresh settings
+    settings = await API.getSettings();
   }
   
   renderWidgetEditor();
@@ -1228,15 +1222,12 @@ async function deleteWidget(id) {
     config.widgets = widgets;
     await saveConfig(config);
   } else if (selectedWidgetMonitorId) {
-    if (!settings.monitors[selectedWidgetMonitorId]) settings.monitors[selectedWidgetMonitorId] = {};
-    settings.monitors[selectedWidgetMonitorId].widgets = widgets;
+    await API.setMonitorConfig(selectedWidgetMonitorId, { widgets });
     
-    if (currentMode === 'different') {
-      await saveConfig(settings.monitors[selectedMonitorId]);
-    } else {
-      const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
-      await saveConfig(config);
-    }
+    const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
+    await saveConfig(config);
+    
+    settings = await API.getSettings();
   }
   
   renderWidgetEditor();
@@ -1245,6 +1236,17 @@ async function deleteWidget(id) {
 async function saveCurrentWidgets(reRender = true) {
   const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
   await saveConfig(config);
+  
+  if (currentMode === 'same') {
+    const areas = widgetEditorCanvasesWrapper.querySelectorAll('.widget-preview-area');
+    for (const area of areas) {
+      const mId = area.dataset.monitorId;
+      const widgets = getWidgetsFromArea(area, mId);
+      await API.setMonitorConfig(mId, { widgets });
+    }
+    settings = await API.getSettings();
+  }
+  
   if (reRender) renderWidgetEditor();
 }
 
