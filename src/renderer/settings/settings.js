@@ -1122,9 +1122,18 @@ function addInspectorLocationSearch(label, value, onSelect) {
             div.className = 'suggestion-item';
             div.textContent = `${item.name}, ${item.country}`;
             div.onclick = () => {
-              input.value = `${item.name}, ${item.country}`;
+              const fullLoc = `${item.name}, ${item.country}`;
+              input.value = fullLoc;
               suggestions.style.display = 'none';
               onSelect(item);
+              
+              // Success feedback
+              input.style.borderColor = '#10b981';
+              input.style.boxShadow = '0 0 0 2px rgba(16, 185, 129, 0.2)';
+              setTimeout(() => {
+                input.style.borderColor = '';
+                input.style.boxShadow = '';
+              }, 1500);
             };
             suggestions.appendChild(div);
           });

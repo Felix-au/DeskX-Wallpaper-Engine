@@ -300,13 +300,15 @@ async function setupWeather(widget) {
         throw new Error(data.error.message);
       }
 
-      const temp = Math.round(data.current.temp_c);
-      const condition = data.current.condition.text;
-      const iconUrl = 'http:' + data.current.condition.icon;
+      const city = data.location.name;
+      const country = data.location.country;
 
       weatherEl.innerHTML = `
-        <div class="weather-temp">${temp}°C</div>
-        <div class="weather-icon"><img src="${iconUrl}" alt="${condition}" style="width:24px;height:24px;filter:drop-shadow(0 0 5px rgba(255,255,255,0.3));"></div>
+        <div class="weather-info-main">
+          <div class="weather-temp">${temp}°C</div>
+          <div class="weather-icon"><img src="${iconUrl}" alt="${condition}"></div>
+        </div>
+        <div class="weather-location">${city}, ${country}</div>
       `;
     } catch (err) {
       console.error('[Weather] Failed to fetch:', err);

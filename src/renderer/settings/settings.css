@@ -851,6 +851,29 @@ button:focus:not(:focus-visible) { outline: none; }
   width: 100%;
 }
 
+.location-search-wrapper input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s ease;
+  margin-top: 5px;
+}
+
+.location-search-wrapper input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.location-search-wrapper input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
 .location-suggestions {
   position: absolute;
   top: calc(100% + 5px);

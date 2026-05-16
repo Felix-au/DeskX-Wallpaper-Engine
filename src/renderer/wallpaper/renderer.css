@@ -229,8 +229,9 @@ html, body {
 /* Weather */
 .weather-container {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 15px;
+  gap: 5px;
   background: rgba(255,255,255,0.1);
   backdrop-filter: blur(10px);
   padding: 15px 25px;
@@ -243,11 +244,33 @@ html, body {
   border: 1px solid rgba(0,0,0,0.1);
 }
 
+.weather-info-main {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
 .weather-temp {
   font-size: 48px;
   font-weight: 700;
 }
 
+.weather-location {
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.8;
+  margin-top: -5px;
+}
+
 .weather-icon {
-  font-size: 56px;
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.weather-icon img {
+  width: 48px;
+  height: 48px;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
 }
