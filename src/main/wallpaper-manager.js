@@ -211,12 +211,15 @@ function applyWallpapers() {
       spanningWindow = createSpanningWindow(config);
     }
   } else if (mode === 'same') {
-    const config = settingsStore.getGlobalConfig();
-    console.log(`[WallpaperManager] Same config: path="${config.wallpaperPath}"`);
-    if (config.wallpaperPath) {
+    const globalConfig = settingsStore.getGlobalConfig();
+    console.log(`[WallpaperManager] Same config: path="${globalConfig.wallpaperPath}"`);
+    if (globalConfig.wallpaperPath) {
       for (const display of displays) {
-        const win = createWallpaperWindow(display, config);
-        wallpaperWindows.set(display.id.toString(), win);
+        const monitorId = display.id.toString();
+        const monitorConfig = settingsStore.getMonitorConfig(monitorId);
+        const configForDisplay = { ...globalConfig, widgets: monitorConfig.widgets || [] };
+        const win = createWallpaperWindow(display, configForDisplay);
+        wallpaperWindows.set(monitorId, win);
       }
     }
   } else {

@@ -17,7 +17,8 @@ let mediaDimensions = null; // { w, h } — natural dims of current wallpaper
 let videoThumbnailUrl = null; // data URL captured from video frame
 
 // Widget State
-let selectedWidgetId = null;
+let selectedWidgetIndex = null;
+let selectedWidgetMonitorId = null;
 let isDragging = false;
 let editorScaleFactor = 0.25;
 let dragStartX, dragStartY;
@@ -61,8 +62,7 @@ const btnClose = document.getElementById('btn-close');
 
 // Widgets DOM
 const btnAddWidget = document.getElementById('btn-add-widget');
-const widgetPreviewArea = document.getElementById('widget-preview-area');
-const widgetPreviewBg = document.getElementById('widget-preview-bg');
+const widgetEditorCanvasesWrapper = document.getElementById('widget-editor-canvases-wrapper');
 const widgetInspector = document.getElementById('widget-inspector');
 const inspectorContent = document.getElementById('inspector-content');
 const btnDeleteWidget = document.getElementById('btn-delete-widget');
@@ -215,12 +215,12 @@ function loadGlobalConfig() {
     currentFile = { filePath: config.wallpaperPath, wallpaperType: config.wallpaperType };
     showPreview(config);
     showOptions(config);
-    renderWidgetEditor(config);
+    renderWidgetEditor();
   } else { 
     currentFile = null; 
     hidePreview(); 
     hideOptions(); 
-    renderWidgetEditor(config || { widgets: [] });
+    renderWidgetEditor();
   }
 }
 
@@ -230,13 +230,13 @@ function loadMonitorConfig(monitorId) {
     currentFile = { filePath: config.wallpaperPath, wallpaperType: config.wallpaperType };
     showPreview(config);
     showOptions(config);
-    renderWidgetEditor(config);
+    renderWidgetEditor();
   } else { 
     currentFile = null; 
     hidePreview(); 
     hideOptions(); 
     // Even if no wallpaper, show widgets editor if there's a monitor selected
-    renderWidgetEditor(config || { widgets: [] });
+    renderWidgetEditor();
   }
 }
 
@@ -250,6 +250,7 @@ async function browseFile() {
     showPreview(config);
     showOptions(config);
     await saveConfig(config);
+    renderWidgetEditor();
   }
 }
 
@@ -261,7 +262,7 @@ function buildConfig(file) {
     interactive: file.wallpaperType === 'html', // HTML is always interactive
     loop: toggleLoop.checked,
     fit: getSelectedFit(),
-    widgets: getWidgetsFromEditor(),
+    widgets: currentMode === 'different' || currentMode === 'spanning' ? getWidgetsFromEditor() : [],
   };
 }
 
@@ -276,6 +277,17 @@ async function saveConfig(config) {
       settings = await API.setMonitorConfig(selectedMonitorId, config);
     } else {
       settings = await API.setGlobalConfig(config);
+      
+      if (currentMode === 'same') {
+        // Save widgets per monitor
+        const areas = widgetEditorCanvasesWrapper.querySelectorAll('.widget-preview-area');
+        for (const area of areas) {
+          const mId = area.dataset.monitorId;
+          const widgets = getWidgetsFromArea(area, mId);
+          await API.setMonitorConfig(mId, { widgets });
+        }
+        settings = await API.getSettings();
+      }
     }
     renderMonitors();
   } catch (err) {
@@ -769,38 +781,47 @@ function renderPickerPreviews() {
 }
 
 
-function renderWidgetEditor(config) {
+function renderWidgetEditor() {
   panelWidgets.style.display = 'block';
   
   // Wait for DOM reflow to get accurate container dimensions
   setTimeout(() => {
-    updateWidgetPreviewArea();
+    widgetEditorCanvasesWrapper.innerHTML = '';
     
-    const widgets = config ? (config.widgets || []) : [];
-    widgetPreviewArea.querySelectorAll('.draggable-widget').forEach(el => el.remove());
-
-    widgets.forEach((w, index) => {
-      const el = document.createElement('div');
-      el.className = 'draggable-widget';
-      el.dataset.id = index;
-      el.style.left = `${w.x}%`;
-      el.style.top = `${w.y}%`;
-      el.style.transform = `translate(-50%, -50%) scale(${(w.scale || 1) * editorScaleFactor})`;
-      
-      renderWidgetToElement(w, el);
-      
-      el.addEventListener('mousedown', (e) => onWidgetDragStart(e, index));
-      widgetPreviewArea.appendChild(el);
-      
-      if (selectedWidgetId === index) {
-        el.classList.add('selected');
+    if (currentMode === 'same') {
+      displays.forEach((display, index) => {
+        const monitorId = display.id.toString();
+        const mConfig = settings.monitors[monitorId] || {};
+        createWidgetCanvas(display, index, { ...settings.globalConfig, widgets: mConfig.widgets || [] }, `Monitor ${index + 1}`);
+      });
+    } else if (currentMode === 'different') {
+      if (selectedMonitorId) {
+        const display = displays.find(d => d.id.toString() === selectedMonitorId);
+        if (display) {
+          createWidgetCanvas(display, selectedMonitorIndex, settings.monitors[selectedMonitorId] || {}, `Monitor ${selectedMonitorIndex + 1}`);
+        }
       }
-    });
+    } else if (currentMode === 'spanning') {
+      // For now, just render using primary display bounding box size ratio
+      const primary = displays.find(d => d.isPrimary) || displays[0];
+      if (primary) {
+        createWidgetCanvas(primary, 0, settings.globalConfig || {}, 'Spanning Display');
+      }
+    }
 
-    if (selectedWidgetId !== null && widgets[selectedWidgetId]) {
-      updateInspector(widgets[selectedWidgetId]);
+    if (selectedWidgetIndex !== null && selectedWidgetMonitorId !== null) {
+      const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
+        ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+        : (settings.globalConfig?.widgets || []);
+        
+      if (currentWidgets[selectedWidgetIndex]) {
+        updateInspector(currentWidgets[selectedWidgetIndex]);
+      } else {
+        selectedWidgetIndex = null;
+        selectedWidgetMonitorId = null;
+        widgetInspector.style.display = 'none';
+      }
     } else {
-      selectedWidgetId = null; 
       widgetInspector.style.display = 'none';
     }
   }, 0);
@@ -810,13 +831,26 @@ function hideWidgetEditor() {
   panelWidgets.style.display = 'none';
 }
 
-function updateWidgetPreviewArea() {
-  const display = getSelectedDisplay();
-  if (!display) return;
-
-  const canvas = document.getElementById('widget-editor-canvas');
-  const canvasW = canvas.clientWidth - 40;
-  const canvasH = canvas.clientHeight - 40;
+function createWidgetCanvas(display, index, config, titleText) {
+  const section = document.createElement('div');
+  section.className = 'widget-monitor-section';
+  
+  const title = document.createElement('h4');
+  title.textContent = titleText;
+  section.appendChild(title);
+  
+  const canvas = document.createElement('div');
+  canvas.className = 'widget-editor-canvas';
+  
+  const previewArea = document.createElement('div');
+  previewArea.className = 'widget-preview-area';
+  previewArea.dataset.monitorId = display.id.toString();
+  
+  const previewBg = document.createElement('div');
+  previewBg.className = 'widget-preview-bg';
+  
+  const canvasW = widgetEditorCanvasesWrapper.clientWidth - 20; 
+  const canvasH = 350; 
   
   const monitorAspect = display.resolutionWidth / display.resolutionHeight;
   const canvasAspect = canvasW / canvasH;
@@ -830,46 +864,74 @@ function updateWidgetPreviewArea() {
     w = canvasH * monitorAspect;
   }
 
-  widgetPreviewArea.style.width = `${w}px`;
-  widgetPreviewArea.style.height = `${h}px`;
+  previewArea.style.width = `${w}px`;
+  previewArea.style.height = `${h}px`;
   
-  // Calculate relative scale for widgets to match monitor pixels
-  editorScaleFactor = w / display.resolutionWidth;
+  const scaleFactor = w / display.resolutionWidth;
+  previewArea.dataset.scaleFactor = scaleFactor;
 
   if (currentImageUrl) {
-    const config = (currentMode === 'different' && selectedMonitorId) ? settings.monitors[selectedMonitorId] : settings.globalConfig;
-    const fit = (config && config.fit) ? config.fit : 'cover';
-    
-    widgetPreviewBg.style.backgroundImage = `url("${currentImageUrl}")`;
+    const fit = config.fit || 'cover';
+    previewBg.style.backgroundImage = `url("${currentImageUrl}")`;
     
     if (fit === 'cover') {
-      widgetPreviewBg.style.backgroundSize = 'cover';
-      widgetPreviewBg.style.backgroundPosition = 'center';
+      previewBg.style.backgroundSize = 'cover';
+      previewBg.style.backgroundPosition = 'center';
     } else if (fit === 'contain') {
-      widgetPreviewBg.style.backgroundSize = 'contain';
-      widgetPreviewBg.style.backgroundPosition = 'center';
-      widgetPreviewBg.style.backgroundRepeat = 'no-repeat';
+      previewBg.style.backgroundSize = 'contain';
+      previewBg.style.backgroundPosition = 'center';
+      previewBg.style.backgroundRepeat = 'no-repeat';
     } else if (fit === 'stretch') {
-      widgetPreviewBg.style.backgroundSize = '100% 100%';
-      widgetPreviewBg.style.backgroundPosition = 'center';
+      previewBg.style.backgroundSize = '100% 100%';
+      previewBg.style.backgroundPosition = 'center';
     } else if (fit === 'center') {
-      widgetPreviewBg.style.backgroundSize = 'auto';
-      widgetPreviewBg.style.backgroundPosition = 'center';
-      widgetPreviewBg.style.backgroundRepeat = 'no-repeat';
+      previewBg.style.backgroundSize = 'auto';
+      previewBg.style.backgroundPosition = 'center';
+      previewBg.style.backgroundRepeat = 'no-repeat';
     }
   } else {
-    widgetPreviewBg.style.backgroundImage = 'none';
+    previewBg.style.backgroundImage = 'none';
   }
+  
+  previewArea.appendChild(previewBg);
+  
+  const widgets = config.widgets || [];
+  widgets.forEach((w, wIndex) => {
+    const el = document.createElement('div');
+    el.className = 'draggable-widget';
+    el.dataset.id = wIndex;
+    el.dataset.monitorId = display.id.toString();
+    el.style.left = `${w.x}%`;
+    el.style.top = `${w.y}%`;
+    el.style.transform = `translate(-50%, -50%) scale(${(w.scale || 1) * scaleFactor})`;
+    
+    renderWidgetToElement(w, el);
+    
+    el.addEventListener('mousedown', (e) => onWidgetDragStart(e, wIndex, display.id.toString(), previewArea));
+    previewArea.appendChild(el);
+    
+    if (selectedWidgetIndex === wIndex && selectedWidgetMonitorId === display.id.toString()) {
+      el.classList.add('selected');
+    }
+  });
+  
+  canvas.appendChild(previewArea);
+  section.appendChild(canvas);
+  widgetEditorCanvasesWrapper.appendChild(section);
 }
 
-function onWidgetDragStart(e, id) {
+let currentDragPreviewArea = null;
+
+function onWidgetDragStart(e, index, monitorId, previewArea) {
   e.preventDefault();
-  selectWidget(id);
+  selectWidget(index, monitorId);
   
   isDragging = true;
-  selectedWidgetId = id;
+  selectedWidgetIndex = index;
+  selectedWidgetMonitorId = monitorId;
+  currentDragPreviewArea = previewArea;
   
-  const el = widgetPreviewArea.querySelector(`.draggable-widget[data-id="${id}"]`);
+  const el = previewArea.querySelector(`.draggable-widget[data-id="${index}"]`);
   dragStartX = e.clientX;
   dragStartY = e.clientY;
   
@@ -878,13 +940,13 @@ function onWidgetDragStart(e, id) {
 }
 
 function onWidgetDragMove(e) {
-  if (!isDragging || selectedWidgetId === null) return;
+  if (!isDragging || selectedWidgetIndex === null || !currentDragPreviewArea) return;
 
   const dx = e.clientX - dragStartX;
   const dy = e.clientY - dragStartY;
 
-  const areaW = widgetPreviewArea.clientWidth;
-  const areaH = widgetPreviewArea.clientHeight;
+  const areaW = currentDragPreviewArea.clientWidth;
+  const areaH = currentDragPreviewArea.clientHeight;
 
   let newX = widgetStartX + (dx / areaW) * 100;
   let newY = widgetStartY + (dy / areaH) * 100;
@@ -893,33 +955,49 @@ function onWidgetDragMove(e) {
   newX = Math.max(0, Math.min(100, newX));
   newY = Math.max(0, Math.min(100, newY));
 
-  const el = widgetPreviewArea.querySelector(`.draggable-widget[data-id="${selectedWidgetId}"]`);
-  el.style.left = `${newX}%`;
-  el.style.top = `${newY}%`;
+  const el = currentDragPreviewArea.querySelector(`.draggable-widget[data-id="${selectedWidgetIndex}"]`);
+  if (el) {
+    el.style.left = `${newX}%`;
+    el.style.top = `${newY}%`;
+  }
 }
 
 async function onWidgetDragEnd() {
   if (!isDragging) return;
   isDragging = false;
+  currentDragPreviewArea = null;
   
   // Save position
-  const widgets = getWidgetsFromEditor();
-  const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
-  config.widgets = widgets;
-  await saveConfig(config);
+  await saveCurrentWidgets(false);
 }
 
-function selectWidget(id) {
-  selectedWidgetId = id;
+function selectWidget(index, monitorId) {
+  selectedWidgetIndex = index;
+  selectedWidgetMonitorId = monitorId;
+  
   document.querySelectorAll('.draggable-widget').forEach(el => {
-    el.classList.toggle('selected', parseInt(el.dataset.id) === id);
+    const isSelected = parseInt(el.dataset.id) === index && el.dataset.monitorId === monitorId;
+    el.classList.toggle('selected', isSelected);
   });
 
-  const widgets = getWidgetsFromEditor();
-  if (widgets[id]) {
-    updateInspector(widgets[id]);
+  const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
+    ? (settings.monitors[monitorId]?.widgets || [])
+    : (settings.globalConfig?.widgets || []);
+
+  if (currentWidgets[index]) {
+    updateInspector(currentWidgets[index]);
   } else {
     widgetInspector.style.display = 'none';
+  }
+}
+
+function updateSelectedWidgetStyle(scale) {
+  if (selectedWidgetIndex === null || !selectedWidgetMonitorId) return;
+  const el = widgetEditorCanvasesWrapper.querySelector(`.draggable-widget[data-id="${selectedWidgetIndex}"][data-monitor-id="${selectedWidgetMonitorId}"]`);
+  if (el) {
+    const previewArea = el.closest('.widget-preview-area');
+    const scaleFactor = parseFloat(previewArea.dataset.scaleFactor || 1);
+    el.style.transform = `translate(-50%, -50%) scale(${scale * scaleFactor})`;
   }
 }
 
@@ -933,10 +1011,10 @@ function updateInspector(widget) {
     widget.scale = scale;
     
     // Update local settings object immediately
-    const currentWidgets = (currentMode === 'different' && selectedMonitorId) 
-      ? settings.monitors[selectedMonitorId].widgets 
-      : settings.globalConfig.widgets;
-    currentWidgets[selectedWidgetId].scale = scale;
+    const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
+      ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+      : (settings.globalConfig?.widgets || []);
+    if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].scale = scale;
 
     if (save) {
       saveCurrentWidgets(true); // Save and re-render
@@ -951,11 +1029,10 @@ function updateInspector(widget) {
     { label: 'Dark', value: 'dark' }
   ], (val) => {
     widget.theme = val;
-    // Update local settings object immediately so getWidgetsFromEditor picks it up
-    const currentWidgets = (currentMode === 'different' && selectedMonitorId) 
-      ? settings.monitors[selectedMonitorId].widgets 
-      : settings.globalConfig.widgets;
-    currentWidgets[selectedWidgetId].theme = val;
+    const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
+      ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+      : (settings.globalConfig?.widgets || []);
+    if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].theme = val;
     saveCurrentWidgets();
   });
 
@@ -963,18 +1040,18 @@ function updateInspector(widget) {
   if (widget.type === 'digital-clock') {
     addInspectorCheckbox('Show Date', widget.showDate, (val) => {
       widget.showDate = val;
-      const currentWidgets = (currentMode === 'different' && selectedMonitorId) 
-        ? settings.monitors[selectedMonitorId].widgets 
-        : settings.globalConfig.widgets;
-      currentWidgets[selectedWidgetId].showDate = val;
+      const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
+        ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+        : (settings.globalConfig?.widgets || []);
+      if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].showDate = val;
       saveCurrentWidgets();
     });
     addInspectorCheckbox('12h Format', widget.format12h, (val) => {
       widget.format12h = val;
-      const currentWidgets = (currentMode === 'different' && selectedMonitorId) 
-        ? settings.monitors[selectedMonitorId].widgets 
-        : settings.globalConfig.widgets;
-      currentWidgets[selectedWidgetId].format12h = val;
+      const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
+        ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+        : (settings.globalConfig?.widgets || []);
+      if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].format12h = val;
       saveCurrentWidgets();
     });
   }
@@ -982,18 +1059,18 @@ function updateInspector(widget) {
   if (widget.type === 'weather') {
     addInspectorInput('Latitude (opt)', widget.lat || '', 'number', (val) => {
       widget.lat = val;
-      const currentWidgets = (currentMode === 'different' && selectedMonitorId) 
-        ? settings.monitors[selectedMonitorId].widgets 
-        : settings.globalConfig.widgets;
-      currentWidgets[selectedWidgetId].lat = val;
+      const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
+        ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+        : (settings.globalConfig?.widgets || []);
+      if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].lat = val;
       saveCurrentWidgets();
     });
     addInspectorInput('Longitude (opt)', widget.lon || '', 'number', (val) => {
       widget.lon = val;
-      const currentWidgets = (currentMode === 'different' && selectedMonitorId) 
-        ? settings.monitors[selectedMonitorId].widgets 
-        : settings.globalConfig.widgets;
-      currentWidgets[selectedWidgetId].lon = val;
+      const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
+        ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+        : (settings.globalConfig?.widgets || []);
+      if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].lon = val;
       saveCurrentWidgets();
     });
   }
@@ -1048,13 +1125,12 @@ function addInspectorInput(label, value, type, onChange) {
   inspectorContent.appendChild(ctrl);
 }
 
-function getWidgetsFromEditor() {
+function getWidgetsFromArea(area, monitorId) {
   const widgets = [];
-  const elWidgets = widgetPreviewArea.querySelectorAll('.draggable-widget');
+  const elWidgets = area.querySelectorAll('.draggable-widget');
   
-  // Get current widgets from settings to preserve non-position properties
-  const currentWidgets = (currentMode === 'different' && selectedMonitorId) 
-    ? (settings.monitors[selectedMonitorId]?.widgets || [])
+  const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
+    ? (settings.monitors[monitorId]?.widgets || [])
     : (settings.globalConfig?.widgets || []);
 
   elWidgets.forEach(el => {
@@ -1067,8 +1143,36 @@ function getWidgetsFromEditor() {
   return widgets;
 }
 
+function getWidgetsFromEditor() {
+  if (currentMode === 'spanning') {
+    const area = widgetEditorCanvasesWrapper.querySelector('.widget-preview-area');
+    if (!area) return [];
+    return getWidgetsFromArea(area, null);
+  } else if (currentMode === 'different') {
+    if (!selectedMonitorId) return [];
+    const area = widgetEditorCanvasesWrapper.querySelector(`.widget-preview-area[data-monitor-id="${selectedMonitorId}"]`);
+    if (!area) return [];
+    return getWidgetsFromArea(area, selectedMonitorId);
+  }
+  return [];
+}
+
 async function addNewWidget(type) {
-  const widgets = getWidgetsFromEditor();
+  let targetMonitorId = null;
+  let widgets = [];
+  
+  if (currentMode === 'spanning') {
+    const area = widgetEditorCanvasesWrapper.querySelector('.widget-preview-area');
+    if (area) widgets = getWidgetsFromArea(area, null);
+  } else {
+    // If in same or different mode, default to selected monitor or first available
+    targetMonitorId = selectedMonitorId || (displays.length > 0 ? displays[0].id.toString() : null);
+    if (targetMonitorId) {
+      const area = widgetEditorCanvasesWrapper.querySelector(`.widget-preview-area[data-monitor-id="${targetMonitorId}"]`);
+      if (area) widgets = getWidgetsFromArea(area, targetMonitorId);
+    }
+  }
+
   const newWidget = {
     type,
     x: 50,
@@ -1079,49 +1183,69 @@ async function addNewWidget(type) {
     format12h: true
   };
   widgets.push(newWidget);
-  selectedWidgetId = widgets.length - 1;
   
-  const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
-  config.widgets = widgets;
-  await saveConfig(config);
-  renderWidgetEditor(config);
+  selectedWidgetIndex = widgets.length - 1;
+  selectedWidgetMonitorId = targetMonitorId;
+  
+  if (currentMode === 'spanning') {
+    const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
+    config.widgets = widgets;
+    await saveConfig(config);
+  } else if (targetMonitorId) {
+    if (!settings.monitors[targetMonitorId]) settings.monitors[targetMonitorId] = {};
+    settings.monitors[targetMonitorId].widgets = widgets;
+    
+    // Save current state
+    if (currentMode === 'different') {
+      await saveConfig(settings.monitors[selectedMonitorId]);
+    } else {
+      // In same mode, save global config which will also trigger save of per-monitor widgets
+      const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
+      await saveConfig(config);
+    }
+  }
+  
+  renderWidgetEditor();
 }
 
 async function deleteWidget(id) {
-  let widgets = getWidgetsFromEditor();
-  widgets.splice(id, 1);
-  selectedWidgetId = null;
+  if (selectedWidgetMonitorId === null && currentMode !== 'spanning') return;
   
-  const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
-  config.widgets = widgets;
-  await saveConfig(config);
-  renderWidgetEditor(config);
+  let widgets = [];
+  if (currentMode === 'spanning') {
+    const area = widgetEditorCanvasesWrapper.querySelector('.widget-preview-area');
+    if (area) widgets = getWidgetsFromArea(area, null);
+  } else {
+    const area = widgetEditorCanvasesWrapper.querySelector(`.widget-preview-area[data-monitor-id="${selectedWidgetMonitorId}"]`);
+    if (area) widgets = getWidgetsFromArea(area, selectedWidgetMonitorId);
+  }
+  
+  widgets.splice(id, 1);
+  selectedWidgetIndex = null;
+  
+  if (currentMode === 'spanning') {
+    const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
+    config.widgets = widgets;
+    await saveConfig(config);
+  } else if (selectedWidgetMonitorId) {
+    if (!settings.monitors[selectedWidgetMonitorId]) settings.monitors[selectedWidgetMonitorId] = {};
+    settings.monitors[selectedWidgetMonitorId].widgets = widgets;
+    
+    if (currentMode === 'different') {
+      await saveConfig(settings.monitors[selectedMonitorId]);
+    } else {
+      const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
+      await saveConfig(config);
+    }
+  }
+  
+  renderWidgetEditor();
 }
 
 async function saveCurrentWidgets(reRender = true) {
-  const widgets = getWidgetsFromEditor();
   const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
-  config.widgets = widgets;
   await saveConfig(config);
-  if (reRender) renderWidgetEditor(config);
-}
-
-function updateSelectedWidgetStyle(scaleOverride = null) {
-  if (selectedWidgetId === null) return;
-  const el = widgetPreviewArea.querySelector(`.draggable-widget[data-id="${selectedWidgetId}"]`);
-  if (!el) return;
-
-  let scale;
-  if (scaleOverride !== null) {
-    scale = scaleOverride;
-  } else {
-    const widgets = getWidgetsFromEditor();
-    const w = widgets[selectedWidgetId];
-    scale = w ? (w.scale || 1) : 1;
-  }
-
-  // Update transform without re-creating the whole thing
-  el.style.transform = `translate(-50%, -50%) scale(${scale * editorScaleFactor})`;
+  if (reRender) renderWidgetEditor();
 }
 
 // ── Event Handlers ────────────────────────────────────────────────────
@@ -1150,6 +1274,7 @@ dropZone.addEventListener('drop', e => {
       showPreview(config);
       showOptions(config);
       saveConfig(config);
+      renderWidgetEditor();
     }
   }
 });
@@ -1157,7 +1282,10 @@ dropZone.addEventListener('drop', e => {
 // Fit preview items — click to select fit mode
 function onFitChange(fit) {
   document.querySelectorAll('.fit-preview-item').forEach(i => i.classList.toggle('active', i.dataset.fit === fit));
-  if (currentFile) saveConfig(buildConfig(currentFile));
+  if (currentFile) {
+    saveConfig(buildConfig(currentFile));
+    renderWidgetEditor();
+  }
 }
 
 document.querySelectorAll('.fit-preview-item').forEach(item => {
