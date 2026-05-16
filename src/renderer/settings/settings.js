@@ -19,6 +19,7 @@ let videoThumbnailUrl = null; // data URL captured from video frame
 // Widget State
 let selectedWidgetId = null;
 let isDragging = false;
+let editorScaleFactor = 0.25;
 let dragStartX, dragStartY;
 let widgetStartX, widgetStartY;
 
@@ -781,7 +782,7 @@ function renderWidgetEditor(config) {
     el.dataset.id = index;
     el.style.left = `${w.x}%`;
     el.style.top = `${w.y}%`;
-    el.style.transform = `translate(-50%, -50%) scale(${(w.scale || 1) * 0.4})`; // Scaled for preview
+    el.style.transform = `translate(-50%, -50%) scale(${(w.scale || 1) * editorScaleFactor})`;
     
     renderWidgetToElement(w, el);
     
@@ -826,6 +827,9 @@ function updateWidgetPreviewArea() {
 
   widgetPreviewArea.style.width = `${w}px`;
   widgetPreviewArea.style.height = `${h}px`;
+  
+  // Calculate relative scale for widgets to match monitor pixels
+  editorScaleFactor = w / display.resolutionWidth;
 
   if (currentImageUrl) {
     const config = (currentMode === 'different' && selectedMonitorId) ? settings.monitors[selectedMonitorId] : settings.globalConfig;
@@ -1112,7 +1116,7 @@ function updateSelectedWidgetStyle(scaleOverride = null) {
   }
 
   // Update transform without re-creating the whole thing
-  el.style.transform = `translate(-50%, -50%) scale(${scale * 0.4})`;
+  el.style.transform = `translate(-50%, -50%) scale(${scale * editorScaleFactor})`;
 }
 
 // ── Event Handlers ────────────────────────────────────────────────────

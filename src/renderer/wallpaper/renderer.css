@@ -149,6 +149,7 @@ html, body {
   font-size: 80px;
   font-weight: 700;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .digital-date {
@@ -156,6 +157,7 @@ html, body {
   font-weight: 400;
   margin-top: 10px;
   text-align: center;
+  white-space: nowrap;
 }
 
 /* Analog Clock */
