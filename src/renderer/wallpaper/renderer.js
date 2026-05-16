@@ -286,39 +286,27 @@ function setupAnalogNumbered(widget) {
 }
 
 async function setupWeather(widget) {
-  const weatherEl = document.createElement('div');
-  weatherEl.className = 'weather-container';
-  widget.element.appendChild(weatherEl);
-
+  const weatherEl = widget.element;
+  const apiKey = '5fcb015a41ea49dc92e170240261605';
+  
   async function update() {
     try {
-      // Use geolocation if coordinates not provided
-      let lat = widget.config.lat;
-      let lon = widget.config.lon;
-
-      if (!lat || !lon) {
-        const resp = await fetch('https://ipapi.co/json/');
-        const data = await resp.json();
-        lat = data.latitude;
-        lon = data.longitude;
+      let query = widget.config.locationQuery || 'auto:ip';
+      
+      const weatherResp = await fetch(`http://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${encodeURIComponent(query)}`);
+      const data = await weatherResp.json();
+      
+      if (data.error) {
+        throw new Error(data.error.message);
       }
 
-      const weatherResp = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-      const weatherData = await weatherResp.json();
-      const current = weatherData.current_weather;
-
-      const code = current.weathercode;
-      let icon = '☀️';
-      if (code >= 1 && code <= 3) icon = '⛅';
-      if (code >= 45 && code <= 48) icon = '🌫️';
-      if (code >= 51 && code <= 67) icon = '🌧️';
-      if (code >= 71 && code <= 77) icon = '❄️';
-      if (code >= 80 && code <= 82) icon = '🌦️';
-      if (code >= 95) icon = '⛈️';
+      const temp = Math.round(data.current.temp_c);
+      const condition = data.current.condition.text;
+      const iconUrl = 'http:' + data.current.condition.icon;
 
       weatherEl.innerHTML = `
-        <div class="weather-temp">${Math.round(current.temperature)}°C</div>
-        <div class="weather-icon">${icon}</div>
+        <div class="weather-temp">${temp}°C</div>
+        <div class="weather-icon"><img src="${iconUrl}" alt="${condition}" style="width:24px;height:24px;filter:drop-shadow(0 0 5px rgba(255,255,255,0.3));"></div>
       `;
     } catch (err) {
       console.error('[Weather] Failed to fetch:', err);

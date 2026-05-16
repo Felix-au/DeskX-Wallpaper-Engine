@@ -1070,23 +1070,80 @@ function updateInspector(widget) {
   }
 
   if (widget.type === 'weather') {
-    addInspectorInput('Latitude (opt)', widget.lat || '', 'number', (val) => {
-      widget.lat = val;
+    addInspectorLocationSearch('City / Location', widget.locationName || '', (loc) => {
+      widget.locationQuery = `id:${loc.id}`;
+      widget.locationName = `${loc.name}, ${loc.country}`;
+      
       const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
         ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
         : (settings.globalConfig?.widgets || []);
-      if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].lat = val;
-      saveCurrentWidgets();
-    });
-    addInspectorInput('Longitude (opt)', widget.lon || '', 'number', (val) => {
-      widget.lon = val;
-      const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
-        ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
-        : (settings.globalConfig?.widgets || []);
-      if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].lon = val;
+      
+      if (currentWidgets[selectedWidgetIndex]) {
+        currentWidgets[selectedWidgetIndex].locationQuery = widget.locationQuery;
+        currentWidgets[selectedWidgetIndex].locationName = widget.locationName;
+      }
       saveCurrentWidgets();
     });
   }
+}
+
+function addInspectorLocationSearch(label, value, onSelect) {
+  const ctrl = document.createElement('div');
+  ctrl.className = 'inspector-control';
+  ctrl.innerHTML = `
+    <label>${label}</label>
+    <div class="location-search-wrapper">
+      <input type="text" placeholder="Type city (e.g. London)..." value="${value}">
+      <div class="location-suggestions" style="display:none;"></div>
+    </div>
+  `;
+  
+  const input = ctrl.querySelector('input');
+  const suggestions = ctrl.querySelector('.location-suggestions');
+  
+  let debounceTimer;
+  input.addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    const query = e.target.value;
+    if (query.length < 2) {
+      suggestions.style.display = 'none';
+      return;
+    }
+    
+    debounceTimer = setTimeout(async () => {
+      try {
+        const apiKey = '5fcb015a41ea49dc92e170240261605';
+        const res = await fetch(`http://api.weatherapi.com/v1/search.json?key=${apiKey}&q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        
+        suggestions.innerHTML = '';
+        if (data && data.length > 0) {
+          data.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.textContent = `${item.name}, ${item.country}`;
+            div.onclick = () => {
+              input.value = `${item.name}, ${item.country}`;
+              suggestions.style.display = 'none';
+              onSelect(item);
+            };
+            suggestions.appendChild(div);
+          });
+          suggestions.style.display = 'block';
+        } else {
+          suggestions.style.display = 'none';
+        }
+      } catch (err) {
+        console.error('Location search failed:', err);
+      }
+    }, 500);
+  });
+
+  input.addEventListener('blur', () => {
+    setTimeout(() => { suggestions.style.display = 'none'; }, 200);
+  });
+
+  inspectorContent.appendChild(ctrl);
 }
 
 function addInspectorRange(label, value, min, max, step, onChange) {
