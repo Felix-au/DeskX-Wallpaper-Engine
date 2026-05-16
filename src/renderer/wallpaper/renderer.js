@@ -180,6 +180,9 @@ function addWidget(widgetConfig) {
     case 'quote':
       setupQuote(widget);
       break;
+    case 'calendar':
+      setupCalendar(widget);
+      break;
   }
 
   widgetContainer.appendChild(widgetDiv);
@@ -502,6 +505,56 @@ function setupCustomText(widget) {
 
 function setupEmbedHTML(widget) {
   widget.element.innerHTML = `<div class="embed-container">${widget.config.embedCode || ''}</div>`;
+}
+
+function setupCalendar(widget) {
+  function update() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const today = now.getDate();
+    
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    let html = `
+      <div class="calendar-widget">
+        <div class="calendar-header">${monthNames[month]} ${year}</div>
+        <div class="calendar-grid">
+          <div class="day-name">S</div><div class="day-name">M</div><div class="day-name">T</div>
+          <div class="day-name">W</div><div class="day-name">T</div><div class="day-name">F</div><div class="day-name">S</div>
+    `;
+    
+    // Empty slots
+    for (let i = 0; i < firstDay; i++) {
+      html += `<div class="day empty"></div>`;
+    }
+    
+    // Days
+    for (let i = 1; i <= daysInMonth; i++) {
+      const isToday = i === today ? 'today' : '';
+      html += `<div class="day ${isToday}">${i}</div>`;
+    }
+    
+    html += `</div></div>`;
+    widget.element.innerHTML = html;
+  }
+  
+  update();
+  // Update at midnight
+  const now = new Date();
+  const nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const diff = nextDay - now;
+  const timeout = setTimeout(() => {
+    update();
+    setInterval(update, 24 * 60 * 60 * 1000);
+  }, diff);
+  
+  widget.cleanup = () => clearTimeout(timeout);
 }
 
 async function setupBattery(widget) {

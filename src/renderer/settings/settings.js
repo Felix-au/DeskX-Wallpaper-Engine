@@ -821,6 +821,16 @@ function renderWidgetToElement(widgetConfig, container) {
         </div>
       `;
       break;
+    case 'calendar':
+      widgetDiv.innerHTML = `
+        <div style="padding:10px;text-align:center;font-size:10px;">
+          <div style="font-weight:bold;margin-bottom:5px;">MAY 2026</div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;opacity:0.6;">
+            <div>1</div><div>2</div><div>3</div><div>4</div><div style="background:#6366f1;color:#fff;border-radius:2px;">5</div><div>6</div><div>7</div>
+          </div>
+        </div>
+      `;
+      break;
   }
 
   container.appendChild(widgetDiv);
@@ -831,7 +841,7 @@ function renderPickerPreviews() {
     'digital-clock', 'analog-minimalist', 'analog-numbered', 
     'weather', 'weather-detailed', 'clock-weather', 
     'astronomy', 'aqi', 'custom-text', 'embed-html',
-    'battery', 'countdown', 'quote'
+    'battery', 'countdown', 'quote', 'calendar'
   ];
   types.forEach(type => {
     const el = document.getElementById(`preview-${type}`);
