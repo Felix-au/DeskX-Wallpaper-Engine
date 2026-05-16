@@ -864,7 +864,10 @@ button:focus:not(:focus-visible) { outline: none; }
   margin-top: 5px;
 }
 
-.location-search-wrapper input:focus {
+.location-search-wrapper input:focus,
+.inspector-control input:focus,
+.inspector-control textarea:focus,
+.inspector-control select:focus {
   background: rgba(255, 255, 255, 0.08);
   border-color: #6366f1;
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
@@ -872,6 +875,53 @@ button:focus:not(:focus-visible) { outline: none; }
 
 .location-search-wrapper input::placeholder {
   color: rgba(255, 255, 255, 0.3);
+}
+
+/* General Inspector Controls Styling */
+.location-search-wrapper input,
+.inspector-control input[type="text"],
+.inspector-control input[type="datetime-local"],
+.inspector-control textarea,
+.inspector-control select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s ease;
+  margin-top: 5px;
+  font-family: inherit;
+}
+
+.inspector-control input:focus,
+.inspector-control textarea:focus,
+.inspector-control select:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.inspector-control textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.inspector-control select option {
+  background: #1e1e2e;
+  color: #fff;
+}
+
+.inspector-control label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.5);
+  display: block;
+  margin-bottom: 2px;
 }
 
 .location-suggestions {

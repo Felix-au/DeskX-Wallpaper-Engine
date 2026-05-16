@@ -153,6 +153,33 @@ function addWidget(widgetConfig) {
     case 'weather':
       setupWeather(widget);
       break;
+    case 'weather-detailed':
+      setupWeatherDetailed(widget);
+      break;
+    case 'clock-weather':
+      setupClockWeather(widget);
+      break;
+    case 'astronomy':
+      setupAstronomy(widget);
+      break;
+    case 'aqi':
+      setupAQI(widget);
+      break;
+    case 'custom-text':
+      setupCustomText(widget);
+      break;
+    case 'embed-html':
+      setupEmbedHTML(widget);
+      break;
+    case 'battery':
+      setupBattery(widget);
+      break;
+    case 'countdown':
+      setupCountdown(widget);
+      break;
+    case 'quote':
+      setupQuote(widget);
+      break;
   }
 
   widgetContainer.appendChild(widgetDiv);
@@ -292,13 +319,9 @@ async function setupWeather(widget) {
   async function update() {
     try {
       let query = widget.config.locationQuery || 'auto:ip';
-      
       const weatherResp = await fetch(`https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${encodeURIComponent(query)}`);
       const data = await weatherResp.json();
-      
-      if (data.error) {
-        throw new Error(data.error.message);
-      }
+      if (data.error) throw new Error(data.error.message);
 
       const temp = Math.round(data.current.temp_c);
       const condition = data.current.condition.text;
@@ -320,7 +343,245 @@ async function setupWeather(widget) {
   }
 
   update();
-  const interval = setInterval(update, 30 * 60 * 1000); // Update every 30 mins
+  const interval = setInterval(update, 30 * 60 * 1000);
+  widget.cleanup = () => clearInterval(interval);
+}
+
+async function setupWeatherDetailed(widget) {
+  const weatherEl = widget.element;
+  const apiKey = '5fcb015a41ea49dc92e170240261605';
+  
+  async function update() {
+    try {
+      let query = widget.config.locationQuery || 'auto:ip';
+      const weatherResp = await fetch(`https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${encodeURIComponent(query)}`);
+      const data = await weatherResp.json();
+      if (data.error) throw new Error(data.error.message);
+
+      const temp = Math.round(data.current.temp_c);
+      const condition = data.current.condition.text;
+      const iconUrl = 'https:' + data.current.condition.icon;
+      const feelsLike = Math.round(data.current.feelslike_c);
+      const humidity = data.current.humidity;
+      const wind = data.current.wind_kph;
+      const uv = data.current.uv;
+      const city = data.location.name;
+      const country = data.location.country;
+
+      weatherEl.innerHTML = `
+        <div class="weather-detailed-grid">
+          <div class="weather-main-row">
+            <div class="weather-temp-large">${temp}°C</div>
+            <img src="${iconUrl}" alt="${condition}">
+          </div>
+          <div class="weather-condition-text">${condition}</div>
+          <div class="weather-location-small">${city}, ${country}</div>
+          <div class="weather-stats-grid">
+            <div class="stat-item"><span>Feels Like:</span> ${feelsLike}°C</div>
+            <div class="stat-item"><span>Humidity:</span> ${humidity}%</div>
+            <div class="stat-item"><span>Wind:</span> ${wind} km/h</div>
+            <div class="stat-item"><span>UV Index:</span> ${uv}</div>
+          </div>
+        </div>
+      `;
+    } catch (err) {
+      console.error('[Weather Detailed] Error:', err);
+    }
+  }
+
+  update();
+  const interval = setInterval(update, 30 * 60 * 1000);
+  widget.cleanup = () => clearInterval(interval);
+}
+
+async function setupClockWeather(widget) {
+  const timeEl = document.createElement('div');
+  timeEl.className = 'digital-time-small';
+  const weatherInner = document.createElement('div');
+  weatherInner.className = 'clock-weather-inner';
+  widget.element.appendChild(timeEl);
+  widget.element.appendChild(weatherInner);
+
+  const apiKey = '5fcb015a41ea49dc92e170240261605';
+
+  function updateTime() {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    let ampm = '';
+    if (widget.config.format12h) {
+      ampm = hours >= 12 ? ' PM' : ' AM';
+      hours = hours % 12 || 12;
+    }
+    timeEl.textContent = `${hours}:${minutes}${ampm}`;
+  }
+
+  async function updateWeather() {
+    try {
+      let query = widget.config.locationQuery || 'auto:ip';
+      const res = await fetch(`https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (!data.error) {
+        weatherInner.innerHTML = `
+          <div class="clock-weather-info">
+            <img src="https:${data.current.condition.icon}" style="width:24px;"> 
+            <span>${Math.round(data.current.temp_c)}°C</span>
+          </div>
+          <div class="weather-location-tiny">${data.location.name}</div>
+        `;
+      }
+    } catch(e){}
+  }
+
+  updateTime();
+  updateWeather();
+  const tInt = setInterval(updateTime, 1000);
+  const wInt = setInterval(updateWeather, 30 * 60 * 1000);
+  widget.cleanup = () => { clearInterval(tInt); clearInterval(wInt); };
+}
+
+async function setupAstronomy(widget) {
+  const apiKey = '5fcb015a41ea49dc92e170240261605';
+  async function update() {
+    try {
+      let query = widget.config.locationQuery || 'auto:ip';
+      const res = await fetch(`https://api.weatherapi.com/v1/astronomy.json?key=${apiKey}&q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      const a = data.astronomy.astro;
+      const city = data.location.name;
+      const country = data.location.country;
+
+      widget.element.innerHTML = `
+        <div class="astro-widget">
+          <div class="astro-item">🌅 <span>Sunrise:</span> ${a.sunrise}</div>
+          <div class="astro-item">🌇 <span>Sunset:</span> ${a.sunset}</div>
+          <div class="astro-item">🌙 <span>Moon:</span> ${a.moon_phase}</div>
+          <div class="weather-location-small" style="margin-top: 5px; opacity: 0.5;">${city}, ${country}</div>
+        </div>
+      `;
+    } catch(e){}
+  }
+  update();
+  const interval = setInterval(update, 60 * 60 * 1000);
+  widget.cleanup = () => clearInterval(interval);
+}
+
+async function setupAQI(widget) {
+  const apiKey = '5fcb015a41ea49dc92e170240261605';
+  async function update() {
+    try {
+      let query = widget.config.locationQuery || 'auto:ip';
+      const res = await fetch(`https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${encodeURIComponent(query)}&aqi=yes`);
+      const data = await res.json();
+      const air = data.current.air_quality;
+      const aqiIdx = air['us-epa-index'];
+      const pm25 = Math.round(air['pm2_5']);
+      const city = data.location.name;
+      const country = data.location.country;
+
+      const labels = ['', 'Good', 'Moderate', 'Unhealthy (SG)', 'Unhealthy', 'Very Unhealthy', 'Hazardous'];
+      const colors = ['', '#10b981', '#fbbf24', '#f59e0b', '#ef4444', '#b91c1c', '#7f1d1d'];
+      
+      widget.element.innerHTML = `
+        <div class="aqi-widget" style="border-left: 4px solid ${colors[aqiIdx] || '#ccc'}">
+          <div class="aqi-value">Level ${aqiIdx}: ${labels[aqiIdx] || 'Unknown'}</div>
+          <div class="aqi-pm">PM2.5: ${pm25} µg/m³</div>
+          <div class="weather-location-small" style="margin-top: 4px; opacity: 0.5;">${city}, ${country}</div>
+        </div>
+      `;
+    } catch(e){}
+  }
+  update();
+  const interval = setInterval(update, 30 * 60 * 1000);
+  widget.cleanup = () => clearInterval(interval);
+}
+
+function setupCustomText(widget) {
+  widget.element.innerHTML = `<div class="custom-text-content">${widget.config.customText || 'Custom Text'}</div>`;
+}
+
+function setupEmbedHTML(widget) {
+  widget.element.innerHTML = `<div class="embed-container">${widget.config.embedCode || ''}</div>`;
+}
+
+async function setupBattery(widget) {
+  async function update() {
+    try {
+      const battery = await navigator.getBattery();
+      const level = Math.round(battery.level * 100);
+      const charging = battery.charging;
+      widget.element.innerHTML = `
+        <div class="battery-widget ${level < 20 ? 'low' : ''}">
+          <div class="battery-icon-wrapper">
+            <div class="battery-level" style="width: ${level}%"></div>
+            ${charging ? '<div class="charging-bolt">⚡</div>' : ''}
+          </div>
+          <div class="battery-text">${level}%</div>
+        </div>
+      `;
+    } catch(e) {
+      widget.element.textContent = 'Battery Not Supported';
+    }
+  }
+  update();
+  const interval = setInterval(update, 60000);
+  widget.cleanup = () => clearInterval(interval);
+}
+
+function setupCountdown(widget) {
+  const targetDate = new Date(widget.config.targetDate || Date.now() + 86400000);
+  const label = widget.config.label || 'Countdown';
+  
+  function update() {
+    const now = new Date();
+    const diff = targetDate - now;
+    if (diff <= 0) {
+      widget.element.innerHTML = `<div class="countdown-finished">${label} Finished!</div>`;
+      return;
+    }
+    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const m = Math.floor((diff / (1000 * 60)) % 60);
+    const s = Math.floor((diff / 1000) % 60);
+    
+    widget.element.innerHTML = `
+      <div class="countdown-widget">
+        <div class="countdown-label">${label}</div>
+        <div class="countdown-timer">
+          <span>${d}d</span> <span>${h}h</span> <span>${m}m</span> <span>${s}s</span>
+        </div>
+      </div>
+    `;
+  }
+  update();
+  const interval = setInterval(update, 1000);
+  widget.cleanup = () => clearInterval(interval);
+}
+
+async function setupQuote(widget) {
+  async function update() {
+    try {
+      const res = await fetch('https://type.fit/api/quotes');
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const randomIndex = Math.floor(Math.random() * data.length);
+        const q = data[randomIndex];
+        // Type.fit authors sometimes have ", type.fit" appended
+        const author = q.author ? q.author.split(',')[0] : 'Unknown';
+        widget.element.innerHTML = `
+          <div class="quote-widget">
+            <div class="quote-text">"${q.text}"</div>
+            <div class="quote-author">— ${author}</div>
+          </div>
+        `;
+      }
+    } catch(e) {
+      console.error('[Quote] Failed to fetch:', e);
+      widget.element.innerHTML = '<div class="quote-error">Failed to load quote</div>';
+    }
+  }
+  update();
+  const interval = setInterval(update, 2 * 60 * 60 * 1000);
   widget.cleanup = () => clearInterval(interval);
 }
 

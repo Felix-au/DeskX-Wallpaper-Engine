@@ -755,13 +755,84 @@ function renderWidgetToElement(widgetConfig, container) {
         </div>
       `;
       break;
+    case 'weather-detailed':
+      widgetDiv.innerHTML = `
+        <div class="weather-detailed-grid" style="padding:10px;">
+          <div class="weather-main-row">
+            <div class="weather-temp-large" style="font-size:32px;">24°C</div>
+            <div style="font-size:24px;">⛅</div>
+          </div>
+          <div style="font-size:12px;opacity:0.7;">Detailed Weather Info</div>
+        </div>
+      `;
+      break;
+    case 'clock-weather':
+      widgetDiv.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;padding:10px;">
+          <div style="font-size:20px;font-weight:bold;">12:00</div>
+          <div style="font-size:12px;opacity:0.7;">⛅ 24°C</div>
+        </div>
+      `;
+      break;
+    case 'astronomy':
+      widgetDiv.innerHTML = `
+        <div style="padding:10px;font-size:12px;">
+          <div>🌅 06:00</div>
+          <div>🌇 18:00</div>
+        </div>
+      `;
+      break;
+    case 'aqi':
+      widgetDiv.innerHTML = `
+        <div style="padding:10px;border-left:4px solid #10b981;">
+          <div style="font-weight:bold;font-size:12px;">Level 1: Good</div>
+          <div style="font-size:10px;opacity:0.7;">PM2.5: 12</div>
+        </div>
+      `;
+      break;
+    case 'custom-text':
+      widgetDiv.innerHTML = `<div style="padding:10px;font-size:14px;">${widgetConfig.customText || 'Custom Text'}</div>`;
+      break;
+    case 'embed-html':
+      widgetDiv.innerHTML = `<div style="width:60px;height:40px;background:#444;display:flex;align-items:center;justify-content:center;font-size:10px;border-radius:4px;">Embed</div>`;
+      break;
+    case 'battery':
+      widgetDiv.innerHTML = `
+        <div style="padding:10px;display:flex;align-items:center;gap:8px;">
+          <div style="width:20px;height:10px;border:1px solid currentColor;border-radius:2px;position:relative;padding:1px;">
+            <div style="width:70%;height:100%;background:#10b981;"></div>
+          </div>
+          <div style="font-size:12px;">70%</div>
+        </div>
+      `;
+      break;
+    case 'countdown':
+      widgetDiv.innerHTML = `
+        <div style="padding:10px;text-align:center;">
+          <div style="font-size:10px;opacity:0.7;">Countdown</div>
+          <div style="font-size:14px;font-weight:bold;">12d 04h</div>
+        </div>
+      `;
+      break;
+    case 'quote':
+      widgetDiv.innerHTML = `
+        <div style="padding:10px;font-style:italic;font-size:11px;text-align:center;">
+          "The only way to do great work is to love what you do."
+        </div>
+      `;
+      break;
   }
 
   container.appendChild(widgetDiv);
 }
 
 function renderPickerPreviews() {
-  const types = ['digital-clock', 'analog-minimalist', 'analog-numbered', 'weather'];
+  const types = [
+    'digital-clock', 'analog-minimalist', 'analog-numbered', 
+    'weather', 'weather-detailed', 'clock-weather', 
+    'astronomy', 'aqi', 'custom-text', 'embed-html',
+    'battery', 'countdown', 'quote'
+  ];
   types.forEach(type => {
     const el = document.getElementById(`preview-${type}`);
     if (el) {
@@ -1068,7 +1139,7 @@ function updateInspector(widget) {
     });
   }
 
-  if (widget.type === 'weather') {
+  if (widget.type === 'weather' || widget.type === 'weather-detailed' || widget.type === 'clock-weather' || widget.type === 'astronomy' || widget.type === 'aqi') {
     addInspectorLocationSearch('City / Location', widget.locationName || '', (loc) => {
       widget.locationQuery = `id:${loc.id}`;
       widget.locationName = `${loc.name}, ${loc.country}`;
@@ -1082,6 +1153,61 @@ function updateInspector(widget) {
         currentWidgets[selectedWidgetIndex].locationName = widget.locationName;
       }
       saveCurrentWidgets(false);
+    });
+  }
+
+  if (widget.type === 'clock-weather') {
+    addInspectorCheckbox('12h Format', widget.format12h, (val) => {
+      widget.format12h = val;
+      const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
+        ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+        : (settings.globalConfig?.widgets || []);
+      if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].format12h = val;
+      saveCurrentWidgets(false);
+    });
+  }
+
+  if (widget.type === 'custom-text') {
+    addInspectorTextarea('Text Content', widget.customText || 'Custom Text', (val) => {
+      widget.customText = val;
+      const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
+        ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+        : (settings.globalConfig?.widgets || []);
+      if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].customText = val;
+      saveCurrentWidgets(false);
+      renderWidgetEditor(); // Update preview
+    });
+  }
+
+  if (widget.type === 'embed-html') {
+    addInspectorTextarea('Embed Code', widget.embedCode || '', (val) => {
+      widget.embedCode = val;
+      const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
+        ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+        : (settings.globalConfig?.widgets || []);
+      if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].embedCode = val;
+      saveCurrentWidgets(false);
+    });
+  }
+
+  if (widget.type === 'countdown') {
+    addInspectorInput('Label', widget.label || 'Countdown', 'text', (val) => {
+      widget.label = val;
+      const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
+        ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+        : (settings.globalConfig?.widgets || []);
+      if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].label = val;
+      saveCurrentWidgets(false);
+      renderWidgetEditor();
+    });
+    addInspectorInput('Target Date', widget.targetDate || '', 'datetime-local', (val) => {
+      widget.targetDate = val;
+      const currentWidgets = (currentMode === 'same' || currentMode === 'different') 
+        ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+        : (settings.globalConfig?.widgets || []);
+      if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].targetDate = val;
+      saveCurrentWidgets(false);
+      renderWidgetEditor();
     });
   }
 }
@@ -1200,6 +1326,14 @@ function addInspectorInput(label, value, type, onChange) {
   ctrl.className = 'inspector-control';
   ctrl.innerHTML = `<label>${label}</label><input type="${type}" value="${value}">`;
   ctrl.querySelector('input').addEventListener('change', (e) => onChange(e.target.value));
+  inspectorContent.appendChild(ctrl);
+}
+
+function addInspectorTextarea(label, value, onChange) {
+  const ctrl = document.createElement('div');
+  ctrl.className = 'inspector-control';
+  ctrl.innerHTML = `<label>${label}</label><textarea rows="3">${value}</textarea>`;
+  ctrl.querySelector('textarea').addEventListener('change', (e) => onChange(e.target.value));
   inspectorContent.appendChild(ctrl);
 }
 

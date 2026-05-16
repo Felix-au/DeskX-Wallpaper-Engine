@@ -255,11 +255,28 @@ html, body {
   font-weight: 700;
 }
 
-.weather-location {
+.weather-location, .weather-location-small {
   font-size: 14px;
   font-weight: 500;
   opacity: 0.8;
   margin-top: -5px;
+}
+
+.weather-location-small {
+  margin-top: 0;
+  opacity: 0.6;
+}
+
+.weather-location-tiny {
+  font-size: 11px;
+  opacity: 0.6;
+  font-weight: 500;
+}
+
+.clock-weather-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .weather-icon {
@@ -273,4 +290,227 @@ html, body {
   width: 48px;
   height: 48px;
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+}
+
+/* Detailed Weather */
+.weather-detailed-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  min-width: 200px;
+}
+
+.weather-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.weather-temp-large {
+  font-size: 64px;
+  font-weight: 800;
+}
+
+.weather-condition-text {
+  font-size: 20px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.weather-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  font-size: 13px;
+  opacity: 0.9;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 10px;
+}
+
+.stat-item span {
+  opacity: 0.6;
+}
+
+/* Clock + Weather */
+.widget-clock-weather {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 20px;
+}
+
+.digital-time-small {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.clock-weather-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+/* Astronomy */
+.astro-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.astro-item span {
+  opacity: 0.6;
+  margin-right: 5px;
+}
+
+/* AQI */
+.aqi-widget {
+  padding: 10px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aqi-value {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.aqi-pm {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.aqi-label {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* Custom Text */
+.custom-text-content {
+  font-size: 24px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Web Window */
+.web-window-container {
+  overflow: hidden;
+  border-radius: 12px;
+  background: #000;
+}
+
+.web-window-container.landscape {
+  width: 400px;
+  height: 225px;
+}
+
+.web-window-container.portrait {
+  width: 225px;
+  height: 400px;
+}
+
+.web-window-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Embed Container */
+.embed-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Battery */
+.battery-widget {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+}
+
+.battery-icon-wrapper {
+  width: 34px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-radius: 3px;
+  position: relative;
+  padding: 1px;
+}
+
+.battery-icon-wrapper::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 4px;
+  width: 3px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 0 1px 1px 0;
+}
+
+.battery-level {
+  height: 100%;
+  background: #10b981;
+  border-radius: 1px;
+}
+
+.battery-widget.low .battery-level {
+  background: #ef4444;
+}
+
+.charging-bolt {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  color: #fff;
+  text-shadow: 0 0 2px #000;
+}
+
+/* Countdown */
+.countdown-widget {
+  text-align: center;
+  padding: 10px;
+}
+
+.countdown-label {
+  font-size: 12px;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.countdown-timer {
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  gap: 8px;
+}
+
+/* Quote */
+.quote-widget {
+  max-width: 300px;
+  padding: 15px;
+  text-align: center;
+}
+
+.quote-text {
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.quote-author {
+  font-size: 13px;
+  opacity: 0.7;
 }
