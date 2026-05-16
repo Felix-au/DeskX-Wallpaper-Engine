@@ -15,11 +15,14 @@ A Windows desktop wallpaper engine that supports images, GIFs, videos, and inter
 2. Double-click to install
 3. DeskX launches automatically after installation
 
-### Option B — Portable ZIP
+### Option B — Build Yourslef
 
-1. Download **`DeskX-win32-x64-1.0.0.zip`**
-2. Extract to any folder
-3. Run `DeskX.exe`
+```bash
+git clone https://github.com/Felix-au/DeskX-Wallpaper-Engine.git
+cd DeskX-Wallpaper-Engine
+npm install
+npm run build
+```
 
 ### Option C — From Source
 
