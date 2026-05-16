@@ -711,3 +711,73 @@ button:focus:not(:focus-visible) { outline: none; }
   gap: 8px;
   font-size: 13px;
 }
+
+/* Sidebar Action Button */
+.sidebar-action-btn {
+  width: 100%; padding: 12px 8px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  color: var(--text-secondary); cursor: pointer; transition: all var(--transition);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  font-family: var(--font); font-size: 11px; font-weight: 500;
+  backdrop-filter: blur(10px);
+}
+.sidebar-action-btn:hover {
+  border-color: var(--border-hover); background: var(--bg-surface-hover);
+  color: var(--text-primary); transform: translateY(-1px);
+}
+.sidebar-action-btn .mode-icon { color: var(--accent); }
+
+/* --- Widgets in Editor --- */
+
+.draggable-widget .widget {
+  pointer-events: none;
+  transform-origin: center center;
+}
+
+/* Re-using widget styles but scoped to settings */
+.widget {
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+.widget.theme-dark { color: #000; text-shadow: 0 2px 10px rgba(255,255,255,0.3); }
+
+.digital-time { font-size: 48px; font-weight: 700; line-height: 1; white-space: nowrap; }
+.digital-date { font-size: 14px; font-weight: 400; margin-top: 4px; text-align: center; }
+
+.w-100 { width: 100%; }
+.mt-10 { margin-top: 10px; }
+
+.analog-clock { width: 140px; height: 140px; position: relative; }
+.analog-clock .face { width: 100%; height: 100%; border-radius: 50%; position: relative; }
+.analog-clock.minimalist .face { border: 2px solid currentColor; }
+.analog-clock .hand { position: absolute; bottom: 50%; left: 50%; transform-origin: bottom center; background: currentColor; border-radius: 4px; }
+.analog-clock .hour { width: 3px; height: 25%; z-index: 3; }
+.analog-clock .minute { width: 2px; height: 35%; z-index: 2; }
+.analog-clock .second { width: 1px; height: 40%; background: #ff4757; z-index: 1; }
+.analog-clock .center-dot { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: currentColor; border-radius: 50%; transform: translate(-50%, -50%); z-index: 4; }
+.analog-clock.numbered .number { position: absolute; top: 50%; left: 50%; font-size: 11px; font-weight: 600; }
+
+.weather-container {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);
+  padding: 8px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+}
+.theme-dark .weather-container { background: rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.1); }
+.weather-temp { font-size: 24px; font-weight: 700; }
+.weather-icon { font-size: 28px; }
+
+/* Mini previews for picker */
+.widget-type-item .widget-preview-mini {
+  width: 140px; height: 90px;
+  background: #05050a; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; border: 1px solid var(--border);
+  position: relative; margin-bottom: 4px;
+}
+.widget-type-item .widget-preview-mini .widget {
+  transform: scale(0.4) !important;
+  left: 0 !important; top: 0 !important;
+}
+

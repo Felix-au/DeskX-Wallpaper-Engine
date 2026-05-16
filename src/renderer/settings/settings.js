@@ -665,7 +665,107 @@ function initWidgetEvents() {
 
   window.addEventListener('mousemove', onWidgetDragMove);
   window.addEventListener('mouseup', onWidgetDragEnd);
+
+  // Initial picker previews
+  renderPickerPreviews();
 }
+
+function renderWidgetToElement(widgetConfig, container) {
+  container.innerHTML = '';
+  const widgetDiv = document.createElement('div');
+  widgetDiv.className = `widget widget-${widgetConfig.type}`;
+  
+  if (widgetConfig.theme === 'light') {
+    widgetDiv.classList.add('theme-light');
+  } else {
+    widgetDiv.classList.add('theme-dark');
+  }
+
+  // Type-specific rendering (simplified for settings UI)
+  switch (widgetConfig.type) {
+    case 'digital-clock':
+      const timeEl = document.createElement('div');
+      timeEl.className = 'digital-time';
+      const dateEl = document.createElement('div');
+      dateEl.className = 'digital-date';
+      widgetDiv.appendChild(timeEl);
+      widgetDiv.appendChild(dateEl);
+      
+      const updateClock = () => {
+        const now = new Date();
+        let hours = now.getHours();
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        let ampm = '';
+        if (widgetConfig.format12h) {
+          ampm = hours >= 12 ? ' PM' : ' AM';
+          hours = hours % 12 || 12;
+        }
+        timeEl.textContent = `${hours}:${minutes}${ampm}`;
+        if (widgetConfig.showDate) {
+          dateEl.textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+      };
+      updateClock();
+      break;
+
+    case 'analog-minimalist':
+    case 'analog-numbered':
+      const isNumbered = widgetConfig.type === 'analog-numbered';
+      let numbersHtml = '';
+      if (isNumbered) {
+        for (let i = 1; i <= 12; i++) {
+          const angle = (i * 30) * (Math.PI / 180);
+          const x = Math.sin(angle) * 85;
+          const y = -Math.cos(angle) * 85;
+          numbersHtml += `<div class="number" style="transform: translate(calc(-50% + ${x}px), calc(-50% + ${y}px))">${i}</div>`;
+        }
+      }
+      widgetDiv.innerHTML = `
+        <div class="analog-clock ${isNumbered ? 'numbered' : 'minimalist'}">
+          <div class="face">
+            ${numbersHtml}
+            <div class="hand hour"></div>
+            <div class="hand minute"></div>
+            <div class="hand second"></div>
+            <div class="center-dot"></div>
+          </div>
+        </div>
+      `;
+      const updateAnalog = () => {
+        const now = new Date();
+        const sDeg = (now.getSeconds() / 60) * 360;
+        const mDeg = (now.getMinutes() / 60) * 360;
+        const hDeg = (now.getHours() / 12) * 360 + (now.getMinutes() / 60) * 30;
+        widgetDiv.querySelector('.second').style.transform = `rotate(${sDeg}deg)`;
+        widgetDiv.querySelector('.minute').style.transform = `rotate(${mDeg}deg)`;
+        widgetDiv.querySelector('.hour').style.transform = `rotate(${hDeg}deg)`;
+      };
+      updateAnalog();
+      break;
+
+    case 'weather':
+      widgetDiv.innerHTML = `
+        <div class="weather-container">
+          <div class="weather-temp">24°C</div>
+          <div class="weather-icon">⛅</div>
+        </div>
+      `;
+      break;
+  }
+
+  container.appendChild(widgetDiv);
+}
+
+function renderPickerPreviews() {
+  const types = ['digital-clock', 'analog-minimalist', 'analog-numbered', 'weather'];
+  types.forEach(type => {
+    const el = document.getElementById(`preview-${type}`);
+    if (el) {
+      renderWidgetToElement({ type, theme: 'light', showDate: true, format12h: true }, el);
+    }
+  });
+}
+
 
 function renderWidgetEditor(config) {
   panelWidgets.style.display = 'block';
@@ -680,13 +780,9 @@ function renderWidgetEditor(config) {
     el.dataset.id = index;
     el.style.left = `${w.x}%`;
     el.style.top = `${w.y}%`;
+    el.style.transform = `translate(-50%, -50%) scale(${(w.scale || 1) * 0.4})`; // Scaled for preview
     
-    let icon = '🕒';
-    if (w.type === 'analog-minimalist') icon = '⏲️';
-    if (w.type === 'analog-numbered') icon = '🕙';
-    if (w.type === 'weather') icon = '⛅';
-
-    el.innerHTML = `<span class="widget-icon">${icon}</span>`;
+    renderWidgetToElement(w, el);
     
     el.addEventListener('mousedown', (e) => onWidgetDragStart(e, index));
     widgetPreviewArea.appendChild(el);
@@ -934,6 +1030,7 @@ async function saveCurrentWidgets() {
   const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
   config.widgets = widgets;
   await saveConfig(config);
+  renderWidgetEditor(config);
 }
 
 // ── Event Handlers ────────────────────────────────────────────────────
