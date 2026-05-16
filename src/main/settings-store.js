@@ -24,6 +24,11 @@ const schema = {
       interactive: { type: 'boolean', default: false },
       fit: { type: 'string', enum: ['cover', 'contain', 'stretch', 'center'], default: 'cover' },
       loop: { type: 'boolean', default: true },
+      widgets: {
+        type: 'array',
+        items: { type: 'object' },
+        default: [],
+      },
     },
     default: {
       wallpaperPath: '',
@@ -32,6 +37,7 @@ const schema = {
       interactive: false,
       fit: 'cover',
       loop: true,
+      widgets: [],
     },
   },
   autostart: {
@@ -117,6 +123,7 @@ function getMonitorConfig(monitorId) {
     interactive: false,
     fit: 'cover',
     loop: true,
+    widgets: [],
   };
 }
 

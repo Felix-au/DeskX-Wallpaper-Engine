@@ -210,6 +210,64 @@
         </div>
       </section>
 
+      <!-- Widgets Panel -->
+      <section class="panel" id="panel-widgets" style="display:none;">
+        <div class="panel-header-with-action">
+          <h2 class="panel-title">Widgets</h2>
+          <div class="panel-actions">
+            <button id="btn-add-widget" class="btn-ghost small">
+              <span class="btn-icon">+</span> Add Widget
+            </button>
+          </div>
+        </div>
+
+        <div class="widget-editor">
+          <div id="widget-editor-canvas" class="widget-editor-canvas">
+            <!-- Scaled preview of the monitor for drag-and-drop -->
+            <div id="widget-preview-area" class="widget-preview-area">
+              <div id="widget-preview-bg" class="widget-preview-bg"></div>
+              <!-- Configured widgets will be rendered here as draggable elements -->
+            </div>
+          </div>
+          
+          <div id="widget-inspector" class="widget-inspector" style="display:none;">
+            <h3 class="inspector-title">Widget Settings</h3>
+            <div id="inspector-content">
+              <!-- Dynamically populated based on selected widget -->
+            </div>
+            <div class="inspector-footer">
+              <button id="btn-delete-widget" class="btn-danger small">Delete Widget</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Widget Type Picker Dialog (hidden by default) -->
+        <div id="widget-picker-modal" class="modal" style="display:none;">
+          <div class="modal-content">
+            <h3>Select Widget Type</h3>
+            <div class="widget-type-grid">
+              <div class="widget-type-item" data-type="digital-clock">
+                <div class="type-icon">🕒</div>
+                <span>Digital Clock</span>
+              </div>
+              <div class="widget-type-item" data-type="analog-minimalist">
+                <div class="type-icon">⏲️</div>
+                <span>Minimalist Analog</span>
+              </div>
+              <div class="widget-type-item" data-type="analog-numbered">
+                <div class="type-icon">🕙</div>
+                <span>Numbered Analog</span>
+              </div>
+              <div class="widget-type-item" data-type="weather">
+                <div class="type-icon">⛅</div>
+                <span>Weather</span>
+              </div>
+            </div>
+            <button id="btn-close-modal" class="btn-ghost">Cancel</button>
+          </div>
+        </div>
+      </section>
+
       <!-- Status Bar -->
       <footer id="status-bar">
         <div class="status-left">

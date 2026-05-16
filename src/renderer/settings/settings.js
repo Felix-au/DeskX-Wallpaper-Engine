@@ -16,6 +16,12 @@ let currentImageUrl = null;
 let mediaDimensions = null; // { w, h } — natural dims of current wallpaper
 let videoThumbnailUrl = null; // data URL captured from video frame
 
+// Widget State
+let selectedWidgetId = null;
+let isDragging = false;
+let dragStartX, dragStartY;
+let widgetStartX, widgetStartY;
+
 // ── DOM References ────────────────────────────────────────────────────
 
 const monitorLayout = document.getElementById('monitor-layout');
@@ -34,6 +40,7 @@ const previewFilename = document.getElementById('preview-filename');
 const previewTypeBadge = document.getElementById('preview-type-badge');
 
 const panelOptions = document.getElementById('panel-options');
+const panelWidgets = document.getElementById('panel-widgets');
 const dimInfo = document.getElementById('dim-info');
 const optFitGroup = document.getElementById('opt-fit-group');
 const optSoundGroup = document.getElementById('opt-sound-group');
@@ -51,6 +58,17 @@ const btnMinimize = document.getElementById('btn-minimize');
 const btnMaximize = document.getElementById('btn-maximize');
 const btnClose = document.getElementById('btn-close');
 
+// Widgets DOM
+const btnAddWidget = document.getElementById('btn-add-widget');
+const widgetPreviewArea = document.getElementById('widget-preview-area');
+const widgetPreviewBg = document.getElementById('widget-preview-bg');
+const widgetInspector = document.getElementById('widget-inspector');
+const inspectorContent = document.getElementById('inspector-content');
+const btnDeleteWidget = document.getElementById('btn-delete-widget');
+const widgetPickerModal = document.getElementById('widget-picker-modal');
+const btnCloseModal = document.getElementById('btn-close-modal');
+const widgetTypeItems = document.querySelectorAll('.widget-type-item');
+
 // ── Initialize ────────────────────────────────────────────────────────
 
 async function init() {
@@ -64,6 +82,7 @@ async function init() {
     if (displays.length > 0) selectMonitor(displays[0].id, 0);
     loadCurrentConfig();
     updateAutostartUI();
+    initWidgetEvents();
     setStatus('Ready');
   } catch (err) {
     console.error('[Settings] Init error:', err);
@@ -190,7 +209,8 @@ function loadGlobalConfig() {
     currentFile = { filePath: config.wallpaperPath, wallpaperType: config.wallpaperType };
     showPreview(config);
     showOptions(config);
-  } else { currentFile = null; hidePreview(); hideOptions(); }
+    renderWidgetEditor(config);
+  } else { currentFile = null; hidePreview(); hideOptions(); hideWidgetEditor(); }
 }
 
 function loadMonitorConfig(monitorId) {
@@ -199,7 +219,14 @@ function loadMonitorConfig(monitorId) {
     currentFile = { filePath: config.wallpaperPath, wallpaperType: config.wallpaperType };
     showPreview(config);
     showOptions(config);
-  } else { currentFile = null; hidePreview(); hideOptions(); }
+    renderWidgetEditor(config);
+  } else { 
+    currentFile = null; 
+    hidePreview(); 
+    hideOptions(); 
+    // Even if no wallpaper, show widgets editor if there's a monitor selected
+    renderWidgetEditor(config || { widgets: [] });
+  }
 }
 
 // ── File Selection ────────────────────────────────────────────────────
@@ -223,6 +250,7 @@ function buildConfig(file) {
     interactive: file.wallpaperType === 'html', // HTML is always interactive
     loop: toggleLoop.checked,
     fit: getSelectedFit(),
+    widgets: getWidgetsFromEditor(),
   };
 }
 
@@ -599,7 +627,304 @@ function showOptions(config) {
 
 function hideOptions() {
   panelOptions.style.display = 'none';
+  panelWidgets.style.display = 'none';
   if (dimInfo) dimInfo.style.display = 'none';
+}
+
+// ── Widget Editor Logic ──────────────────────────────────────────────
+
+function initWidgetEvents() {
+  btnAddWidget.addEventListener('click', () => {
+    widgetPickerModal.style.display = 'flex';
+  });
+
+  btnCloseModal.addEventListener('click', () => {
+    widgetPickerModal.style.display = 'none';
+  });
+
+  widgetTypeItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const type = item.dataset.type;
+      addNewWidget(type);
+      widgetPickerModal.style.display = 'none';
+    });
+  });
+
+  btnDeleteWidget.addEventListener('click', () => {
+    if (selectedWidgetId) deleteWidget(selectedWidgetId);
+  });
+
+  window.addEventListener('mousemove', onWidgetDragMove);
+  window.addEventListener('mouseup', onWidgetDragEnd);
+}
+
+function renderWidgetEditor(config) {
+  panelWidgets.style.display = 'block';
+  updateWidgetPreviewArea();
+  
+  const widgets = config ? (config.widgets || []) : [];
+  widgetPreviewArea.querySelectorAll('.draggable-widget').forEach(el => el.remove());
+
+  widgets.forEach((w, index) => {
+    const el = document.createElement('div');
+    el.className = 'draggable-widget';
+    el.dataset.id = index;
+    el.style.left = `${w.x}%`;
+    el.style.top = `${w.y}%`;
+    
+    let icon = '🕒';
+    if (w.type === 'analog-minimalist') icon = '⏲️';
+    if (w.type === 'analog-numbered') icon = '🕙';
+    if (w.type === 'weather') icon = '⛅';
+
+    el.innerHTML = `<span class="widget-icon">${icon}</span>`;
+    
+    el.addEventListener('mousedown', (e) => onWidgetDragStart(e, index));
+    widgetPreviewArea.appendChild(el);
+    
+    if (selectedWidgetId === index) {
+      el.classList.add('selected');
+    }
+  });
+
+  if (selectedWidgetId !== null && widgets[selectedWidgetId]) {
+    updateInspector(widgets[selectedWidgetId]);
+  } else {
+    widgetInspector.style.display = 'none';
+  }
+}
+
+function hideWidgetEditor() {
+  panelWidgets.style.display = 'none';
+}
+
+function updateWidgetPreviewArea() {
+  const display = getSelectedDisplay();
+  if (!display) return;
+
+  const canvas = document.getElementById('widget-editor-canvas');
+  const canvasW = canvas.clientWidth - 40;
+  const canvasH = canvas.clientHeight - 40;
+  
+  const monitorAspect = display.resolutionWidth / display.resolutionHeight;
+  const canvasAspect = canvasW / canvasH;
+
+  let w, h;
+  if (monitorAspect > canvasAspect) {
+    w = canvasW;
+    h = canvasW / monitorAspect;
+  } else {
+    h = canvasH;
+    w = canvasH * monitorAspect;
+  }
+
+  widgetPreviewArea.style.width = `${w}px`;
+  widgetPreviewArea.style.height = `${h}px`;
+
+  if (currentImageUrl) {
+    widgetPreviewBg.style.backgroundImage = `url("${currentImageUrl}")`;
+  } else {
+    widgetPreviewBg.style.backgroundImage = 'none';
+  }
+}
+
+function onWidgetDragStart(e, id) {
+  e.preventDefault();
+  selectWidget(id);
+  
+  isDragging = true;
+  selectedWidgetId = id;
+  
+  const el = widgetPreviewArea.querySelector(`.draggable-widget[data-id="${id}"]`);
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  
+  widgetStartX = parseFloat(el.style.left);
+  widgetStartY = parseFloat(el.style.top);
+}
+
+function onWidgetDragMove(e) {
+  if (!isDragging || selectedWidgetId === null) return;
+
+  const dx = e.clientX - dragStartX;
+  const dy = e.clientY - dragStartY;
+
+  const areaW = widgetPreviewArea.clientWidth;
+  const areaH = widgetPreviewArea.clientHeight;
+
+  let newX = widgetStartX + (dx / areaW) * 100;
+  let newY = widgetStartY + (dy / areaH) * 100;
+
+  // Constrain
+  newX = Math.max(0, Math.min(100, newX));
+  newY = Math.max(0, Math.min(100, newY));
+
+  const el = widgetPreviewArea.querySelector(`.draggable-widget[data-id="${selectedWidgetId}"]`);
+  el.style.left = `${newX}%`;
+  el.style.top = `${newY}%`;
+}
+
+async function onWidgetDragEnd() {
+  if (!isDragging) return;
+  isDragging = false;
+  
+  // Save position
+  const widgets = getWidgetsFromEditor();
+  const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
+  config.widgets = widgets;
+  await saveConfig(config);
+}
+
+function selectWidget(id) {
+  selectedWidgetId = id;
+  document.querySelectorAll('.draggable-widget').forEach(el => {
+    el.classList.toggle('selected', parseInt(el.dataset.id) === id);
+  });
+
+  const widgets = getWidgetsFromEditor();
+  if (widgets[id]) {
+    updateInspector(widgets[id]);
+  } else {
+    widgetInspector.style.display = 'none';
+  }
+}
+
+function updateInspector(widget) {
+  widgetInspector.style.display = 'flex';
+  inspectorContent.innerHTML = '';
+
+  // Common: Scale
+  addInspectorRange('Scale', widget.scale || 1, 0.5, 3, 0.1, (val) => {
+    widget.scale = parseFloat(val);
+    saveCurrentWidgets();
+  });
+
+  // Common: Theme
+  addInspectorSelect('Theme', widget.theme || 'light', [
+    { label: 'Light', value: 'light' },
+    { label: 'Dark', value: 'dark' }
+  ], (val) => {
+    widget.theme = val;
+    saveCurrentWidgets();
+  });
+
+  // Type specific
+  if (widget.type === 'digital-clock') {
+    addInspectorCheckbox('Show Date', widget.showDate, (val) => {
+      widget.showDate = val;
+      saveCurrentWidgets();
+    });
+    addInspectorCheckbox('12h Format', widget.format12h, (val) => {
+      widget.format12h = val;
+      saveCurrentWidgets();
+    });
+  }
+
+  if (widget.type === 'weather') {
+    addInspectorInput('Latitude (opt)', widget.lat || '', 'number', (val) => {
+      widget.lat = val;
+      saveCurrentWidgets();
+    });
+    addInspectorInput('Longitude (opt)', widget.lon || '', 'number', (val) => {
+      widget.lon = val;
+      saveCurrentWidgets();
+    });
+  }
+}
+
+function addInspectorRange(label, value, min, max, step, onChange) {
+  const ctrl = document.createElement('div');
+  ctrl.className = 'inspector-control';
+  ctrl.innerHTML = `<label>${label}</label><input type="range" min="${min}" max="${max}" step="${step}" value="${value}">`;
+  ctrl.querySelector('input').addEventListener('input', (e) => onChange(e.target.value));
+  inspectorContent.appendChild(ctrl);
+}
+
+function addInspectorSelect(label, value, options, onChange) {
+  const ctrl = document.createElement('div');
+  ctrl.className = 'inspector-control';
+  const optsHtml = options.map(o => `<option value="${o.value}" ${o.value === value ? 'selected' : ''}>${o.label}</option>`).join('');
+  ctrl.innerHTML = `<label>${label}</label><select>${optsHtml}</select>`;
+  ctrl.querySelector('select').addEventListener('change', (e) => onChange(e.target.value));
+  inspectorContent.appendChild(ctrl);
+}
+
+function addInspectorCheckbox(label, value, onChange) {
+  const ctrl = document.createElement('div');
+  ctrl.className = 'inspector-control';
+  ctrl.innerHTML = `
+    <label class="checkbox-row">
+      <input type="checkbox" ${value ? 'checked' : ''}>
+      <span>${label}</span>
+    </label>
+  `;
+  ctrl.querySelector('input').addEventListener('change', (e) => onChange(e.target.checked));
+  inspectorContent.appendChild(ctrl);
+}
+
+function addInspectorInput(label, value, type, onChange) {
+  const ctrl = document.createElement('div');
+  ctrl.className = 'inspector-control';
+  ctrl.innerHTML = `<label>${label}</label><input type="${type}" value="${value}">`;
+  ctrl.querySelector('input').addEventListener('change', (e) => onChange(e.target.value));
+  inspectorContent.appendChild(ctrl);
+}
+
+function getWidgetsFromEditor() {
+  const widgets = [];
+  const elWidgets = widgetPreviewArea.querySelectorAll('.draggable-widget');
+  
+  // Get current widgets from settings to preserve non-position properties
+  const currentWidgets = (currentMode === 'different' && selectedMonitorId) 
+    ? (settings.monitors[selectedMonitorId]?.widgets || [])
+    : (settings.globalConfig?.widgets || []);
+
+  elWidgets.forEach(el => {
+    const id = parseInt(el.dataset.id);
+    const w = { ...currentWidgets[id] };
+    w.x = parseFloat(el.style.left);
+    w.y = parseFloat(el.style.top);
+    widgets.push(w);
+  });
+  return widgets;
+}
+
+async function addNewWidget(type) {
+  const widgets = getWidgetsFromEditor();
+  const newWidget = {
+    type,
+    x: 50,
+    y: 50,
+    scale: 1,
+    theme: 'light',
+    showDate: true,
+    format12h: true
+  };
+  widgets.push(newWidget);
+  selectedWidgetId = widgets.length - 1;
+  
+  const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
+  config.widgets = widgets;
+  await saveConfig(config);
+  renderWidgetEditor(config);
+}
+
+async function deleteWidget(id) {
+  let widgets = getWidgetsFromEditor();
+  widgets.splice(id, 1);
+  selectedWidgetId = null;
+  
+  const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
+  config.widgets = widgets;
+  await saveConfig(config);
+  renderWidgetEditor(config);
+}
+
+async function saveCurrentWidgets() {
+  const widgets = getWidgetsFromEditor();
+  const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
+  config.widgets = widgets;
+  await saveConfig(config);
 }
 
 // ── Event Handlers ────────────────────────────────────────────────────
