@@ -695,12 +695,13 @@ function renderWidgetToElement(widgetConfig, container) {
         const now = new Date();
         let hours = now.getHours();
         const minutes = now.getMinutes().toString().padStart(2, '0');
+        const seconds = now.getSeconds().toString().padStart(2, '0');
         let ampm = '';
         if (widgetConfig.format12h) {
           ampm = hours >= 12 ? ' PM' : ' AM';
           hours = hours % 12 || 12;
         }
-        timeEl.textContent = `${hours}:${minutes}${ampm}`;
+        timeEl.textContent = `${hours}:${minutes}:${seconds}${ampm}`;
         if (widgetConfig.showDate) {
           dateEl.textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
         }
@@ -827,7 +828,26 @@ function updateWidgetPreviewArea() {
   widgetPreviewArea.style.height = `${h}px`;
 
   if (currentImageUrl) {
+    const config = (currentMode === 'different' && selectedMonitorId) ? settings.monitors[selectedMonitorId] : settings.globalConfig;
+    const fit = (config && config.fit) ? config.fit : 'cover';
+    
     widgetPreviewBg.style.backgroundImage = `url("${currentImageUrl}")`;
+    
+    if (fit === 'cover') {
+      widgetPreviewBg.style.backgroundSize = 'cover';
+      widgetPreviewBg.style.backgroundPosition = 'center';
+    } else if (fit === 'contain') {
+      widgetPreviewBg.style.backgroundSize = 'contain';
+      widgetPreviewBg.style.backgroundPosition = 'center';
+      widgetPreviewBg.style.backgroundRepeat = 'no-repeat';
+    } else if (fit === 'stretch') {
+      widgetPreviewBg.style.backgroundSize = '100% 100%';
+      widgetPreviewBg.style.backgroundPosition = 'center';
+    } else if (fit === 'center') {
+      widgetPreviewBg.style.backgroundSize = 'auto';
+      widgetPreviewBg.style.backgroundPosition = 'center';
+      widgetPreviewBg.style.backgroundRepeat = 'no-repeat';
+    }
   } else {
     widgetPreviewBg.style.backgroundImage = 'none';
   }
@@ -899,9 +919,21 @@ function updateInspector(widget) {
   inspectorContent.innerHTML = '';
 
   // Common: Scale
-  addInspectorRange('Scale', widget.scale || 1, 0.5, 3, 0.1, (val) => {
-    widget.scale = parseFloat(val);
-    saveCurrentWidgets();
+  addInspectorRange('Scale', widget.scale || 1, 0.5, 3, 0.1, (val, save) => {
+    const scale = parseFloat(val);
+    widget.scale = scale;
+    
+    // Update local settings object immediately
+    const currentWidgets = (currentMode === 'different' && selectedMonitorId) 
+      ? settings.monitors[selectedMonitorId].widgets 
+      : settings.globalConfig.widgets;
+    currentWidgets[selectedWidgetId].scale = scale;
+
+    if (save) {
+      saveCurrentWidgets(true); // Save and re-render
+    } else {
+      updateSelectedWidgetStyle(scale); // Visual only
+    }
   });
 
   // Common: Theme
@@ -910,6 +942,11 @@ function updateInspector(widget) {
     { label: 'Dark', value: 'dark' }
   ], (val) => {
     widget.theme = val;
+    // Update local settings object immediately so getWidgetsFromEditor picks it up
+    const currentWidgets = (currentMode === 'different' && selectedMonitorId) 
+      ? settings.monitors[selectedMonitorId].widgets 
+      : settings.globalConfig.widgets;
+    currentWidgets[selectedWidgetId].theme = val;
     saveCurrentWidgets();
   });
 
@@ -917,10 +954,18 @@ function updateInspector(widget) {
   if (widget.type === 'digital-clock') {
     addInspectorCheckbox('Show Date', widget.showDate, (val) => {
       widget.showDate = val;
+      const currentWidgets = (currentMode === 'different' && selectedMonitorId) 
+        ? settings.monitors[selectedMonitorId].widgets 
+        : settings.globalConfig.widgets;
+      currentWidgets[selectedWidgetId].showDate = val;
       saveCurrentWidgets();
     });
     addInspectorCheckbox('12h Format', widget.format12h, (val) => {
       widget.format12h = val;
+      const currentWidgets = (currentMode === 'different' && selectedMonitorId) 
+        ? settings.monitors[selectedMonitorId].widgets 
+        : settings.globalConfig.widgets;
+      currentWidgets[selectedWidgetId].format12h = val;
       saveCurrentWidgets();
     });
   }
@@ -928,10 +973,18 @@ function updateInspector(widget) {
   if (widget.type === 'weather') {
     addInspectorInput('Latitude (opt)', widget.lat || '', 'number', (val) => {
       widget.lat = val;
+      const currentWidgets = (currentMode === 'different' && selectedMonitorId) 
+        ? settings.monitors[selectedMonitorId].widgets 
+        : settings.globalConfig.widgets;
+      currentWidgets[selectedWidgetId].lat = val;
       saveCurrentWidgets();
     });
     addInspectorInput('Longitude (opt)', widget.lon || '', 'number', (val) => {
       widget.lon = val;
+      const currentWidgets = (currentMode === 'different' && selectedMonitorId) 
+        ? settings.monitors[selectedMonitorId].widgets 
+        : settings.globalConfig.widgets;
+      currentWidgets[selectedWidgetId].lon = val;
       saveCurrentWidgets();
     });
   }
@@ -941,7 +994,18 @@ function addInspectorRange(label, value, min, max, step, onChange) {
   const ctrl = document.createElement('div');
   ctrl.className = 'inspector-control';
   ctrl.innerHTML = `<label>${label}</label><input type="range" min="${min}" max="${max}" step="${step}" value="${value}">`;
-  ctrl.querySelector('input').addEventListener('input', (e) => onChange(e.target.value));
+  const input = ctrl.querySelector('input');
+  
+  // Real-time visual update
+  input.addEventListener('input', (e) => {
+    onChange(e.target.value, false); // false = don't save/re-render
+  });
+  
+  // Save on release
+  input.addEventListener('change', (e) => {
+    onChange(e.target.value, true); // true = save to store
+  });
+  
   inspectorContent.appendChild(ctrl);
 }
 
@@ -1025,12 +1089,30 @@ async function deleteWidget(id) {
   renderWidgetEditor(config);
 }
 
-async function saveCurrentWidgets() {
+async function saveCurrentWidgets(reRender = true) {
   const widgets = getWidgetsFromEditor();
   const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
   config.widgets = widgets;
   await saveConfig(config);
-  renderWidgetEditor(config);
+  if (reRender) renderWidgetEditor(config);
+}
+
+function updateSelectedWidgetStyle(scaleOverride = null) {
+  if (selectedWidgetId === null) return;
+  const el = widgetPreviewArea.querySelector(`.draggable-widget[data-id="${selectedWidgetId}"]`);
+  if (!el) return;
+
+  let scale;
+  if (scaleOverride !== null) {
+    scale = scaleOverride;
+  } else {
+    const widgets = getWidgetsFromEditor();
+    const w = widgets[selectedWidgetId];
+    scale = w ? (w.scale || 1) : 1;
+  }
+
+  // Update transform without re-creating the whole thing
+  el.style.transform = `translate(-50%, -50%) scale(${scale * 0.4})`;
 }
 
 // ── Event Handlers ────────────────────────────────────────────────────
