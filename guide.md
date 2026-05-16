@@ -23,6 +23,7 @@ cd DeskX-Wallpaper-Engine
 npm install
 npm run build
 ```
+Above will output the installer file in the `out/make/squirrel.windows/x64/`folder as `DeskX-Setup.exe` and a portable zip file in the `out/make/zip/win32/x64/` folder as `DeskX-win32-x64-1.0.0.zip`.
 
 ### Option C — From Source
 
