@@ -260,10 +260,9 @@ function buildConfig(file) {
     wallpaperPath: file.filePath,
     wallpaperType: file.wallpaperType,
     soundEnabled: toggleSound.checked,
-    interactive: file.wallpaperType === 'html', // HTML is always interactive
+    interactive: file.wallpaperType === 'html',
     loop: toggleLoop.checked,
-    fit: getSelectedFit(),
-    widgets: currentMode === 'different' || currentMode === 'spanning' ? getWidgetsFromEditor() : [],
+    fit: getSelectedFit()
   };
 }
 
@@ -1296,14 +1295,15 @@ async function deleteWidget(id) {
     config.widgets = widgets;
     await saveConfig(config);
   } else if (selectedWidgetMonitorId) {
+    // Save widgets specifically to this monitor
     await API.setMonitorConfig(selectedWidgetMonitorId, { widgets });
     
+    // Also save current wallpaper config to ensure everything is in sync
     const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
     await saveConfig(config);
-    
-    settings = await API.getSettings();
   }
   
+  settings = await API.getSettings();
   renderWidgetEditor();
 }
 
