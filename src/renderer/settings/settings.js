@@ -19,6 +19,7 @@ let videoThumbnailUrl = null; // data URL captured from video frame
 // Widget State
 let selectedWidgetIndex = null;
 let selectedWidgetMonitorId = null;
+let targetAddingMonitorId = null;
 let isDragging = false;
 let editorScaleFactor = 0.25;
 let dragStartX, dragStartY;
@@ -646,6 +647,7 @@ function hideOptions() {
 
 function initWidgetEvents() {
   btnAddWidget.addEventListener('click', () => {
+    targetAddingMonitorId = null;
     widgetPickerModal.style.display = 'flex';
   });
 
@@ -656,7 +658,7 @@ function initWidgetEvents() {
   widgetTypeItems.forEach(item => {
     item.addEventListener('click', () => {
       const type = item.dataset.type;
-      addNewWidget(type);
+      addNewWidget(type, targetAddingMonitorId);
       widgetPickerModal.style.display = 'none';
     });
   });
@@ -771,11 +773,15 @@ function renderPickerPreviews() {
 
 
 function renderWidgetEditor() {
+  const scrollTop = widgetEditorCanvasesWrapper.scrollTop;
   panelWidgets.style.display = 'block';
   
   // Wait for DOM reflow to get accurate container dimensions
   setTimeout(() => {
     widgetEditorCanvasesWrapper.innerHTML = '';
+    
+    // Hide global add button if we have per-monitor buttons
+    btnAddWidget.style.display = (currentMode === 'same' || currentMode === 'different') ? 'none' : 'flex';
     
     if (currentMode === 'same') {
       displays.forEach((display, index) => {
@@ -813,6 +819,7 @@ function renderWidgetEditor() {
     } else {
       widgetInspector.style.display = 'none';
     }
+    widgetEditorCanvasesWrapper.scrollTop = scrollTop;
   }, 0);
 }
 
@@ -824,9 +831,26 @@ function createWidgetCanvas(display, index, config, titleText) {
   const section = document.createElement('div');
   section.className = 'widget-monitor-section';
   
+  const titleContainer = document.createElement('div');
+  titleContainer.className = 'monitor-title-container';
+  
   const title = document.createElement('h4');
   title.textContent = titleText;
-  section.appendChild(title);
+  titleContainer.appendChild(title);
+  
+  if (currentMode === 'same' || currentMode === 'different') {
+    const btnAdd = document.createElement('button');
+    btnAdd.className = 'btn-add-widget-small';
+    btnAdd.innerHTML = '<span>+</span> Add Widget';
+    btnAdd.onclick = (e) => {
+      e.stopPropagation();
+      targetAddingMonitorId = display.id.toString();
+      widgetPickerModal.style.display = 'flex';
+    };
+    titleContainer.appendChild(btnAdd);
+  }
+  
+  section.appendChild(titleContainer);
   
   const canvas = document.createElement('div');
   canvas.className = 'widget-editor-canvas';
@@ -1063,14 +1087,6 @@ function updateInspector(widget) {
       saveCurrentWidgets();
     });
   }
-
-  // Delete button
-  const btnDelete = document.createElement('button');
-  btnDelete.className = 'btn-delete-widget';
-  btnDelete.style.marginTop = '20px';
-  btnDelete.textContent = 'Delete Widget';
-  btnDelete.onclick = () => deleteWidget(selectedWidgetIndex);
-  inspectorContent.appendChild(btnDelete);
 }
 
 function addInspectorRange(label, value, min, max, step, onChange) {
@@ -1154,16 +1170,17 @@ function getWidgetsFromEditor() {
   return [];
 }
 
-async function addNewWidget(type) {
-  let targetMonitorId = null;
+async function addNewWidget(type, monitorIdOverride = null) {
+  let targetMonitorId = monitorIdOverride;
   let widgets = [];
   
   if (currentMode === 'spanning') {
     const area = widgetEditorCanvasesWrapper.querySelector('.widget-preview-area');
     if (area) widgets = getWidgetsFromArea(area, null);
+    targetMonitorId = null;
   } else {
     // If in same or different mode, default to selected monitor or first available
-    targetMonitorId = selectedMonitorId || (displays.length > 0 ? displays[0].id.toString() : null);
+    targetMonitorId = targetMonitorId || selectedMonitorId || (displays.length > 0 ? displays[0].id.toString() : null);
     if (targetMonitorId) {
       const area = widgetEditorCanvasesWrapper.querySelector(`.widget-preview-area[data-monitor-id="${targetMonitorId}"]`);
       if (area) widgets = getWidgetsFromArea(area, targetMonitorId);
