@@ -661,7 +661,7 @@ function initWidgetEvents() {
   });
 
   btnDeleteWidget.addEventListener('click', () => {
-    if (selectedWidgetId) deleteWidget(selectedWidgetId);
+    if (selectedWidgetId !== null) deleteWidget(selectedWidgetId);
   });
 
   window.addEventListener('mousemove', onWidgetDragMove);
@@ -797,6 +797,7 @@ function renderWidgetEditor(config) {
   if (selectedWidgetId !== null && widgets[selectedWidgetId]) {
     updateInspector(widgets[selectedWidgetId]);
   } else {
+    selectedWidgetId = null; // Ensure it's null if not found
     widgetInspector.style.display = 'none';
   }
 }
