@@ -661,7 +661,7 @@ button:focus:not(:focus-visible) { outline: none; }
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   padding: 24px;
-  width: 400px;
+  width: 440px;
   box-shadow: var(--shadow-lg);
 }
 
@@ -675,6 +675,29 @@ button:focus:not(:focus-visible) { outline: none; }
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-bottom: 24px;
+  max-height: 60vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 10px;
+}
+
+/* Scrollbar styling for widget grid */
+.widget-type-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.widget-type-grid::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.widget-type-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.widget-type-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .widget-type-item {
