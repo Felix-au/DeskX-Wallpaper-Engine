@@ -1112,7 +1112,7 @@ function addInspectorLocationSearch(label, value, onSelect) {
     debounceTimer = setTimeout(async () => {
       try {
         const apiKey = '5fcb015a41ea49dc92e170240261605';
-        const res = await fetch(`http://api.weatherapi.com/v1/search.json?key=${apiKey}&q=${encodeURIComponent(query)}`);
+        const res = await fetch(`https://api.weatherapi.com/v1/search.json?key=${apiKey}&q=${encodeURIComponent(query)}`);
         const data = await res.json();
         
         suggestions.innerHTML = '';

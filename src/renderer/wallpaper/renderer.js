@@ -293,13 +293,16 @@ async function setupWeather(widget) {
     try {
       let query = widget.config.locationQuery || 'auto:ip';
       
-      const weatherResp = await fetch(`http://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${encodeURIComponent(query)}`);
+      const weatherResp = await fetch(`https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${encodeURIComponent(query)}`);
       const data = await weatherResp.json();
       
       if (data.error) {
         throw new Error(data.error.message);
       }
 
+      const temp = Math.round(data.current.temp_c);
+      const condition = data.current.condition.text;
+      const iconUrl = 'https:' + data.current.condition.icon;
       const city = data.location.name;
       const country = data.location.country;
 
