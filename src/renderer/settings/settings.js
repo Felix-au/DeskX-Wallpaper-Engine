@@ -1030,7 +1030,7 @@ function updateInspector(widget) {
     if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].scale = scale;
 
     if (save) {
-      saveCurrentWidgets(true); // Save and re-render
+      saveCurrentWidgets(false); // Save without full re-render to preserve UI state
     } else {
       updateSelectedWidgetStyle(scale); // Visual only
     }
@@ -1046,7 +1046,7 @@ function updateInspector(widget) {
       ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
       : (settings.globalConfig?.widgets || []);
     if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].theme = val;
-    saveCurrentWidgets();
+    saveCurrentWidgets(false);
   });
 
   // Type specific
@@ -1057,7 +1057,7 @@ function updateInspector(widget) {
         ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
         : (settings.globalConfig?.widgets || []);
       if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].showDate = val;
-      saveCurrentWidgets();
+      saveCurrentWidgets(false);
     });
     addInspectorCheckbox('12h Format', widget.format12h, (val) => {
       widget.format12h = val;
@@ -1065,7 +1065,7 @@ function updateInspector(widget) {
         ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
         : (settings.globalConfig?.widgets || []);
       if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].format12h = val;
-      saveCurrentWidgets();
+      saveCurrentWidgets(false);
     });
   }
 
@@ -1082,7 +1082,7 @@ function updateInspector(widget) {
         currentWidgets[selectedWidgetIndex].locationQuery = widget.locationQuery;
         currentWidgets[selectedWidgetIndex].locationName = widget.locationName;
       }
-      saveCurrentWidgets();
+      saveCurrentWidgets(false);
     });
   }
 }
@@ -1309,16 +1309,24 @@ async function deleteWidget(id) {
 
 async function saveCurrentWidgets(reRender = true) {
   const config = buildConfig(currentFile || { filePath: '', wallpaperType: '' });
-  await saveConfig(config);
   
   if (currentMode === 'same') {
+    // In same mode, save global config but don't let it clobber our local monitor data
+    await API.setGlobalConfig(config);
+    
+    // Save each monitor's widgets from the editor state
     const areas = widgetEditorCanvasesWrapper.querySelectorAll('.widget-preview-area');
     for (const area of areas) {
       const mId = area.dataset.monitorId;
       const widgets = getWidgetsFromArea(area, mId);
       await API.setMonitorConfig(mId, { widgets });
     }
+    
+    // Refresh settings once at the end
     settings = await API.getSettings();
+    renderMonitors();
+  } else {
+    await saveConfig(config);
   }
   
   if (reRender) renderWidgetEditor();
