@@ -1,7 +1,7 @@
 <h1 align="center">🖥️ DeskX: Wallpaper Engine</h1>
 <p align="center">
-  <strong>Set images, GIFs, videos, and HTML pages as your desktop wallpaper</strong><br/>
-  <em>Full multi-monitor support · Spanning · Per-monitor config · Sound control · Interactive HTML</em>
+  <strong>Set images, GIFs, videos, and HTML pages as your desktop wallpaper — with live interactive widgets</strong><br/>
+  <em>Full multi-monitor support · Spanning · Per-monitor config · Widget Overlays · Sound control · Interactive HTML</em>
 </p>
 
 <p align="center">
@@ -19,6 +19,7 @@
 - [Overview](#-overview)
 - [Why DeskX?](#-why-deskx)
 - [Features](#-features)
+- [Widget Library](#-widget-library)
 - [Architecture](#-architecture)
 - [Quick Start](#-quick-start)
 - [Build Standalone EXE](#-build-standalone-exe)
@@ -33,6 +34,8 @@
 ## 🔍 Overview
 
 **DeskX** is a Windows desktop application that replaces your static wallpaper with dynamic media. It uses the Win32 **WorkerW injection** technique to embed content _behind_ your desktop icons — exactly where the real wallpaper lives — so it never covers your icons, taskbar, or other applications.
+
+On top of the wallpaper itself, DeskX features a **modular widget overlay system** that lets you place live, interactive widgets directly on your desktop: clocks, weather panels, calendars, countdowns, battery monitors, and more.
 
 Supported wallpaper types:
 
@@ -57,6 +60,7 @@ Supported wallpaper types:
 | **Spanning** | Basic stretch | True span with multi-monitor tile visualization |
 | **Videos** | Not supported | Full video with sound & loop control |
 | **HTML** | Not supported | Interactive HTML/CSS/JS wallpapers |
+| **Widgets** | Not supported | 12+ live interactive desktop widgets |
 | **Taskbar** | N/A | Never covers taskbar or icons |
 
 ---
@@ -66,8 +70,8 @@ Supported wallpaper types:
 ### 🖼️ Multi-Monitor Support
 | Feature | Description |
 |---|---|
-| **Same Mode** | Apply one wallpaper to all monitors |
-| **Different Mode** | Set a unique wallpaper per monitor with independent config |
+| **Same Mode** | Apply one wallpaper to all monitors; configure independent widgets per screen |
+| **Different Mode** | Set a unique wallpaper and widget set per monitor |
 | **Spanning Mode** | Stretch a single wallpaper across the entire virtual desktop |
 | **Monitor Dashboard** | Real-time layout view showing resolution, position, and primary status |
 
@@ -106,6 +110,41 @@ Supported wallpaper types:
 | **Auto-Start** | Optional "Start with Windows" toggle |
 | **Single Instance** | Only one instance runs at a time — second launch focuses the first |
 
+### 🧩 Widget Overlay System
+| Feature | Description |
+|---|---|
+| **Visual Editor** | Drag-and-drop widget placement directly on a scaled WYSIWYG preview |
+| **Per-Monitor Widgets** | Independent widget sets for each monitor in both "Same" and "Different" modes |
+| **Widget Inspector** | Per-widget settings panel: scale slider, theme toggle, and type-specific options |
+| **Live Previews** | Widget picker shows actual rendered previews for every widget type |
+| **Persistent Config** | All widget positions, sizes, and settings saved via `electron-store` |
+| **City Search** | WeatherAPI autocomplete with country filtering — no lat/lon required |
+| **Glassmorphism Controls** | Unified premium-styled inputs, textareas, and date pickers in the inspector |
+| **Scrollable Picker** | Internal-scroll modal with custom scrollbar handles any number of widget types |
+
+---
+
+## 🧩 Widget Library
+
+DeskX ships with **12 widget types** out of the box:
+
+| Widget | Description | Data Source |
+|---|---|---|
+| **Digital Clock** | 12h/24h time with optional date display | System time |
+| **Analog Minimalist** | Sleek borderless analog clock face | System time |
+| **Analog Numbered** | Classic analog with number markers | System time |
+| **Weather** | Current temperature, condition icon, city name | WeatherAPI.com |
+| **Detailed Weather** | Feels Like, Humidity, Wind, UV Index + location | WeatherAPI.com |
+| **Clock + Weather** | Hybrid digital clock with live weather summary | WeatherAPI.com |
+| **Astronomy** | Sunrise, Sunset, and Moon phase for your location | WeatherAPI.com |
+| **Air Quality (AQI)** | US-EPA index (1–6), severity label, and PM2.5 value | WeatherAPI.com |
+| **Custom Text** | User-defined label or note displayed on screen | User config |
+| **HTML Embed (iframe)** | Embed any iframe-compatible third-party widget | External URL |
+| **Battery Status** | Visual battery bar with level % and charging indicator | Browser API |
+| **Countdown Timer** | Customizable event countdown (label + target date) | User config |
+| **Quote of the Day** | Random inspirational quote refreshed every 2 hours | type.fit API |
+| **Calendar** | Month-view grid with today's date highlighted | System date |
+
 ---
 
 ## 🏗 Architecture
@@ -138,14 +177,15 @@ Supported wallpaper types:
 │  ┌────────────────────────────────────────────────────────────┐  │
 │  │               Renderer Processes (Chromium)                │  │
 │  │                                                            │  │
-│  │  ┌──────────────────┐    ┌─────────────────────────────┐   │  │
-│  │  │ Settings Window  │    │ Wallpaper Window(s)         │   │  │
-│  │  │                  │    │                             │   │  │
-│  │  │ Monitor layout   │    │ <img> / <video> / <iframe>  │   │  │
-│  │  │ File browser     │    │ per-monitor or spanning     │   │  │
-│  │  │ Fit preview grid │    │ attached to WorkerW         │   │  │
-│  │  │ Options panel    │    │                             │   │  │
-│  │  └──────────────────┘    └─────────────────────────────┘   │  │
+│  │  ┌──────────────────────┐    ┌───────────────────────────┐ │  │
+│  │  │ Settings Window      │    │ Wallpaper Window(s)       │ │  │
+│  │  │                      │    │                           │ │  │
+│  │  │ Monitor layout       │    │ <img>/<video>/<iframe>    │ │  │
+│  │  │ File browser         │    │ + #widget-container       │ │  │
+│  │  │ Fit preview grid     │    │   └ addWidget()           │ │  │
+│  │  │ Widget editor (WYSIWYG)   │   └ setupClock/Weather/.. │ │  │
+│  │  │ Inspector panel      │    │ per-monitor or spanning   │ │  │
+│  │  └──────────────────────┘    └───────────────────────────┘ │  │
 │  └────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -166,6 +206,24 @@ SetParent(ourWindow, emptyWorkerW) → window is now behind desktop icons
     │
     ▼
 SetWindowPos(x, y, w, h) → reposition for correct monitor / spanning bounds
+```
+
+### Widget Rendering Pipeline
+
+```
+User picks widget type → addWidget(config) called
+    │
+    ▼
+createWidgetDiv() → glassmorphism container div with drag handles
+    │
+    ▼
+switch(widget.type) → setupDigitalClock / setupWeather / setupCalendar / …
+    │
+    ▼
+API fetch (WeatherAPI / type.fit / Browser API) → innerHTML update
+    │
+    ▼
+setInterval() → periodic refresh  +  widget.cleanup = clearInterval
 ```
 
 ---
@@ -190,7 +248,7 @@ Download **`DeskX-win32-x64-1.0.0.zip`**, extract anywhere, and run `DeskX.exe`.
 
 ```bash
 git clone https://github.com/Felix-au/DeskX-Wallpaper-Engine.git
-cd DeskX
+cd DeskX-Wallpaper-Engine
 npm install
 npm run dev
 ```
@@ -216,7 +274,7 @@ out/make/
 
 ### What's Bundled Inside the EXE
 
-- **Chromium** — full browser engine for rendering wallpapers
+- **Chromium** — full browser engine for rendering wallpapers and widgets
 - **Node.js** — Electron main process runtime
 - **koffi** — native Win32 FFI module (unpacked from asar for direct loading)
 - **electron-store** — JSON-based settings persistence
@@ -231,8 +289,8 @@ out/make/
 ```
 DeskX/
 ├── assets/
-│   ├── icon.ico                 # Multi-size app icon (16–256px)
-│   ├── icon.png                 # 256px PNG icon
+│   ├── DeskXLogo.ico            # Multi-size app icon (16–256px)
+│   ├── DeskXLogo.png            # 256px PNG icon
 │   └── tray-icon.png            # System tray icon
 │
 ├── src/
@@ -248,19 +306,19 @@ DeskX/
 │   │
 │   └── renderer/
 │       ├── settings/            # Settings UI
-│       │   ├── index.html       # Main settings page
-│       │   ├── settings.css     # Glassmorphism design system
-│       │   └── settings.js      # UI logic, fit preview, monitor layout
+│       │   ├── index.html       # Main settings page (widget picker modal)
+│       │   ├── settings.css     # Glassmorphism design system + inspector styles
+│       │   └── settings.js      # UI logic, fit preview, widget editor & inspector
 │       │
 │       └── wallpaper/           # Wallpaper renderer
-│           ├── index.html       # Wallpaper display page
-│           ├── renderer.css     # Fullscreen media styles
-│           └── renderer.js      # Media loading, fit modes, IPC
+│           ├── index.html       # Wallpaper display page + #widget-container
+│           ├── renderer.css     # Fullscreen media styles + all widget styles
+│           └── renderer.js      # Media loading, fit modes, widget setup functions
 │
 ├── forge.config.js              # Electron Forge build config
 ├── generate-icon.js             # DX lettermark icon generator
 ├── package.json                 # npm config + build scripts
-├── implementation_plan.md       # Original design document
+├── CHANGELOG.md                 # Post-v1.0.0 change history
 ├── README.md                    # This file
 ├── guide.md                     # Quick-start user guide
 └── LICENSE                      # MIT License
@@ -281,6 +339,14 @@ DeskX/
 
 > All dependencies are bundled at build time. The standalone EXE has **zero external requirements**.
 
+**External APIs used at runtime (free tier, no key required to be configured by user):**
+
+| API | Used By | Notes |
+|---|---|---|
+| [WeatherAPI.com](https://www.weatherapi.com/) | Weather, Detailed Weather, Clock+Weather, Astronomy, AQI widgets | Free tier, key bundled in app |
+| [type.fit](https://type.fit/api/quotes) | Quote of the Day widget | Free, no key required |
+| Browser `navigator.getBattery()` | Battery widget | Local only, no network |
+
 ---
 
 ## ⚙️ Configuration
@@ -295,7 +361,7 @@ Settings are stored in `%AppData%/Roaming/DeskX/config.json` via `electron-store
 | **Loop** | `true` / `false` | Loop video playback |
 | **Interactive** | Always `true` for HTML | Mouse/keyboard forwarded to HTML wallpapers |
 | **Autostart** | `true` / `false` | Launch DeskX when Windows starts |
-| **Per-Monitor** | Keyed by display ID | Independent wallpaper + fit + sound per monitor |
+| **Per-Monitor Widgets** | Keyed by display ID | Independent widget array per monitor including type, position, scale, config |
 
 ---
 
@@ -304,11 +370,12 @@ Settings are stored in `%AppData%/Roaming/DeskX/config.json` via `electron-store
 ### High Impact
 - **Wallpaper Gallery** — Built-in browser for community wallpapers (Wallpaper Engine Workshop-style).
 - **Playlist Mode** — Cycle through multiple wallpapers on a timer.
-- **Web URL Wallpapers** — Set any website URL as a live wallpaper.
-- **GPU Acceleration** — Offload video decoding to GPU for lower CPU usage.
+- **Pomodoro Timer Widget** — On-screen productivity timer (25/5 work-break cycles).
+- **RSS News Ticker** — Scrolling headline widget from any RSS feed.
 
 ### Medium Impact
 - **Global Hotkeys** — `Ctrl+Alt+W` to toggle interactive mode, `Ctrl+Alt+P` to pause.
+- **World Clock Widget** — Secondary clock for a user-specified timezone.
 - **Per-Monitor Sound** — Independent volume controls for multi-monitor video setups.
 - **Transition Effects** — Crossfade, slide, or zoom between wallpaper changes.
 - **DPI Scaling** — Improved handling for mixed-DPI multi-monitor setups.
@@ -316,7 +383,7 @@ Settings are stored in `%AppData%/Roaming/DeskX/config.json` via `electron-store
 ### Polish
 - **Wallpaper Scheduler** — Time-based wallpaper switching (day/night themes).
 - **Performance Overlay** — Show FPS and memory usage for video/HTML wallpapers.
-- **Export/Import Config** — Share wallpaper configurations between machines.
+- **Export/Import Config** — Share wallpaper and widget configurations between machines.
 - **Auto-Update** — Check for new versions via GitHub releases.
 
 ---
