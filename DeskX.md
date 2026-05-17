@@ -26,7 +26,7 @@
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────────┐     ┌────────────────┐
-│  You pick    │────▶│  DeskX       │────▶│  WorkerW         │────▶│  Wallpaper     │
+│  You pick    │────▶│  DeskX      │────▶│  WorkerW         │────▶│  Wallpaper     │
 │  a wallpaper │     │  Settings UI │     │  Injection       │     │  Appears       │
 │  (image/GIF/ │     │  fit mode,   │     │  (Win32 API)     │     │  behind icons  │
 │  video/HTML) │     │  mode, opts  │     │  via koffi FFI   │     │  & taskbar     │
@@ -34,7 +34,7 @@
                             │
                             ▼
                    ┌─────────────────┐     ┌──────────────────┐     ┌────────────────┐
-                   │  Widget Editor  │────▶│  Widget Config   │────▶│  Widgets live  │
+                   │  Widget Editor  │────▶│  Widget Config   │────▶│  Widgets live │
                    │  (drag & drop)  │     │  saved per       │     │  on top of     │
                    │  Inspector panel│     │  monitor to      │     │  wallpaper     │
                    │  city search    │     │  electron-store  │     │  (IPC push)    │
