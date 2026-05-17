@@ -191,6 +191,7 @@ function createOverlayWindow(display) {
     height,
     frame: false,
     transparent: true,
+    backgroundColor: '#00000000',
     skipTaskbar: true,
     resizable: false,
     movable: false,
@@ -231,7 +232,7 @@ function createOverlayWindow(display) {
             clearInterval(timerId);
           }
         } catch { clearInterval(timerId); }
-      }, 1000);
+      }, 5000);
       overlayZOrderTimers.set(display.id.toString(), timerId);
     } catch (err) {
       console.error('[WallpaperManager] Overlay setup failed:', err.message);

@@ -45,6 +45,10 @@ html, body {
   font-family: 'Inter', 'Segoe UI', sans-serif;
   transition: box-shadow 0.2s ease, outline 0.2s ease;
   cursor: default;
+  /* Hardware acceleration to prevent transparent window repaint flickering */
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 .widget.theme-light {
