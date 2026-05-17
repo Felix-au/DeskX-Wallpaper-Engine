@@ -1016,3 +1016,148 @@ button:focus:not(:focus-visible) { outline: none; }
   color: #fff;
 }
 
+/* ── Inspector Section Label ───────────────────────────────────────── */
+
+.inspector-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  padding: 4px 0 2px;
+}
+
+/* ── Calendar Marks Inspector ──────────────────────────────────────── */
+
+.marks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.marks-empty {
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  text-align: center;
+  padding: 6px 0;
+}
+
+.mark-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 7px;
+  font-size: 11px;
+}
+
+.mark-dot-preview {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mark-date {
+  color: rgba(255,255,255,0.7);
+  font-family: 'SF Mono','Consolas',monospace;
+  font-size: 10px;
+}
+
+.mark-label-text {
+  flex: 1;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mark-delete-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.25);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.mark-delete-btn:hover { color: #ef4444; }
+
+/* Add date mark row */
+.mark-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.mark-add-row .mark-date-input {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px;
+  padding: 7px 10px;
+  color: #fff;
+  font-size: 12px;
+  outline: none;
+  font-family: inherit;
+  margin-top: 0;
+}
+
+.mark-swatches {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.mark-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.mark-swatch.active {
+  border-color: #fff;
+  transform: scale(1.2);
+}
+
+.mark-add-row .mark-label-input {
+  flex: 1;
+  min-width: 60px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px;
+  padding: 6px 10px;
+  color: #fff;
+  font-size: 12px;
+  outline: none;
+  font-family: inherit;
+  margin-top: 0;
+}
+
+.mark-add-btn {
+  background: rgba(99,102,241,0.2);
+  border: 1px solid rgba(99,102,241,0.35);
+  border-radius: 7px;
+  color: #a5b4fc;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.mark-add-btn:hover {
+  background: rgba(99,102,241,0.35);
+  color: #fff;
+}
+

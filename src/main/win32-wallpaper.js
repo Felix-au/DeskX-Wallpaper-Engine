@@ -88,7 +88,9 @@ const SW_SHOW = 5;
 const SW_SHOWNOACTIVATE = 4;
 
 // SetWindowPos constants
-const HWND_BOTTOM = 1; // Place at bottom of z-order
+const HWND_BOTTOM    = 1;    // Place at bottom of z-order
+const HWND_TOPMOST   = -1;   // Place above all non-topmost windows
+const HWND_NOTOPMOST = -2;   // Remove always-on-top
 const SWP_NOMOVE    = 0x0002;
 const SWP_NOSIZE    = 0x0001;
 const SWP_NOACTIVATE = 0x0010;
@@ -377,6 +379,35 @@ function pinOverlayToBottom(hwnd) {
   pushToBottom(hwndValue);
 }
 
+/**
+ * Raise an overlay window above the Windows taskbar but below normal app windows.
+ * Uses HWND_TOPMOST → immediately HWND_NOTOPMOST to slip above Shell_TrayWnd
+ * in z-order while not staying on top of regular windows.
+ * @param {number|Buffer} hwnd
+ */
+function pinOverlayAboveTaskbar(hwnd) {
+  const hwndValue = Buffer.isBuffer(hwnd) ? bufferToHwnd(hwnd) : hwnd;
+  const flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOSENDCHANGING;
+  // Brief promotion to topmost to slip above the taskbar z-order
+  SetWindowPos(hwndValue, HWND_TOPMOST, 0, 0, 0, 0, flags);
+  // Immediately demote — window stays above taskbar but below normal apps
+  SetWindowPos(hwndValue, HWND_NOTOPMOST, 0, 0, 0, 0, flags);
+}
+
+/**
+ * Pin an overlay window as always-on-top (HWND_TOPMOST), above all app windows.
+ * @param {number|Buffer} hwnd
+ */
+function pinOverlayTopmost(hwnd) {
+  const hwndValue = Buffer.isBuffer(hwnd) ? bufferToHwnd(hwnd) : hwnd;
+  SetWindowPos(
+    hwndValue,
+    HWND_TOPMOST,
+    0, 0, 0, 0,
+    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOSENDCHANGING
+  );
+}
+
 module.exports = {
   findWorkerW,
   attachWindow,
@@ -387,4 +418,6 @@ module.exports = {
   setWindowClickThrough,
   setupOverlayWindow,
   pinOverlayToBottom,
+  pinOverlayAboveTaskbar,
+  pinOverlayTopmost,
 };

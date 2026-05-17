@@ -1096,20 +1096,20 @@ function updateSelectedWidgetStyle(scale) {
 
 // Widget description map for all 14 widget types
 const WIDGET_DESCRIPTIONS = {
-  'digital-clock': 'Displays current time with optional seconds and date. Click on the desktop widget to toggle 12h/24h format.',
-  'analog-minimalist': 'Clean analog clock face with hour, minute, and second hands. No numbers — just pure minimalism.',
-  'analog-numbered': 'Classic analog clock with 1-12 hour markers and smooth sweeping hands.',
-  'weather': 'Shows current temperature and weather condition with icon. Location auto-detected or configurable. Hover to refresh.',
-  'weather-detailed': 'Comprehensive weather panel: temperature, feels-like, humidity, wind speed, UV index. Hover to refresh data.',
-  'clock-weather': 'Compact hybrid widget combining a digital clock with a small weather readout and city name.',
-  'astronomy': 'Tracks sunrise, sunset times and current moon phase for your location. Hover to refresh.',
-  'aqi': 'Air Quality Index monitor. Shows US-EPA level, PM2.5 concentration, and color-coded severity.',
-  'custom-text': 'Your own text on the desktop. Double-click on the desktop widget to edit inline.',
-  'embed-html': 'Embed raw HTML/iframe content as a widget. Useful for custom third-party integrations.',
-  'battery': 'Real-time battery level indicator with charging status and low-battery visual warning.',
-  'countdown': 'Counts down to a target date/time. Shows days, hours, minutes, seconds remaining.',
-  'quote': 'Displays a random inspirational quote. Click on the desktop widget or hover to refresh for a new one.',
-  'calendar': 'Month-view calendar grid highlighting today. Use ◀ ▶ arrows on the desktop to navigate months.',
+  'digital-clock': 'Shows time with optional date and seconds. · Left-click time → toggle 12h/24h. · Right-click → context menu: toggle 12h, Show Date, Show Seconds. · Configure Show Date, 12h format in inspector.',
+  'analog-minimalist': 'Minimal analog clock — hour, minute, second hands, no numbers. · Right-click → switch to numbered face instantly. · Drag to reposition.',
+  'analog-numbered': 'Analog clock with 1–12 hour markers and smooth sweeping hands. · Right-click → switch to minimalist face instantly. · Drag to reposition.',
+  'weather': 'Current temperature, condition icon and location. · Click the temperature → toggle °C/°F. · Hover → 🔄 refresh button. · Configure city or use auto-detect in inspector. · Toggle °F in inspector.',
+  'weather-detailed': 'Full weather: temp, feels-like, humidity, wind, UV index. · Click temperature → toggle °C/°F. · Tap ▼ 3-Day Forecast to expand hi/lo forecast cards. · Hover → 🔄 refresh. · Configure city + °F in inspector.',
+  'clock-weather': 'Digital clock combined with a mini weather readout. · Click the temperature → toggle °C/°F. · Configure 12h format, city and °F in inspector.',
+  'astronomy': 'Sunrise, sunset times and moon phase for your location. · Hover → 🔄 refresh. · Set city in inspector.',
+  'aqi': 'Air Quality Index with US-EPA level, PM2.5 concentration, color-coded tint and health advisory text. · Hover → 🔄 refresh. · Set city in inspector.',
+  'custom-text': 'Your text on the desktop. · Double-click the widget → edit text inline. · Press Enter or click away to save. · Edit text content in inspector.',
+  'embed-html': 'Embed raw HTML or iframe content as a widget. · Hover → 🔄 reload button to refresh the embed. · Edit HTML code in inspector.',
+  'battery': 'Battery level with charging status, time remaining and tint. · Shows desktop notification when battery ≤15% while unplugged. · Updates every 60 seconds automatically.',
+  'countdown': 'Counts down to a target date. · Double-click the label on the desktop → rename it inline (press Enter to save). · Pulses with a glow animation when finished. · Set label and target date/time in inspector.',
+  'calendar': 'Month-view calendar. · Click ◀ ▶ arrows to navigate months (shows marked-date count per month). · Click any date cell → pick a color dot + label and save a mark. · Click a marked date → edit or delete the mark. · Manage all marks in inspector.',
+  'quote': 'Random inspirational quote. · Click the quote body or 🔄 → load a new one. · 📋 Copy to clipboard. · 🤍 Heart → save to favourites. · ⭐ Cycle through saved favourites only. · 🌐 Switch back to random quotes.',
 };
 
 function updateInspector(widget) {
@@ -1193,6 +1193,17 @@ function updateInspector(widget) {
     });
   }
 
+  if (widget.type === 'weather' || widget.type === 'weather-detailed' || widget.type === 'clock-weather') {
+    addInspectorCheckbox('Use Fahrenheit (°F)', widget.useFahrenheit || false, (val) => {
+      widget.useFahrenheit = val;
+      const currentWidgets = (currentMode === 'same' || currentMode === 'different')
+        ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+        : (settings.globalConfig?.widgets || []);
+      if (currentWidgets[selectedWidgetIndex]) currentWidgets[selectedWidgetIndex].useFahrenheit = val;
+      saveCurrentWidgets(false);
+    });
+  }
+
   if (widget.type === 'clock-weather') {
     addInspectorCheckbox('12h Format', widget.format12h, (val) => {
       widget.format12h = val;
@@ -1248,24 +1259,53 @@ function updateInspector(widget) {
     });
   }
 
+  // ── Calendar: Marked Dates ────────────────────────────────────────
+  if (widget.type === 'calendar') {
+    addCalendarMarksSection(widget);
+  }
+
   // ── Common Toggles: Draggable + Interactive ────────────────────────
 
   const sep = document.createElement('div');
   sep.className = 'inspector-separator';
   inspectorContent.appendChild(sep);
 
-  const draggableLabel = 'Draggable on Desktop';
   const isDraggable = settings.widgetsDraggable !== false;
-  addInspectorCheckbox(draggableLabel, isDraggable, async (val) => {
+  addInspectorCheckbox('Draggable on Desktop', isDraggable, async (val) => {
     settings.widgetsDraggable = val;
     if (API.setWidgetsDraggable) await API.setWidgetsDraggable(val);
   });
 
-  const interactiveLabel = 'Interactive on Desktop';
   const isInteractive = settings.widgetsInteractive !== false;
-  addInspectorCheckbox(interactiveLabel, isInteractive, async (val) => {
+  addInspectorCheckbox('Interactive on Desktop', isInteractive, async (val) => {
     settings.widgetsInteractive = val;
     if (API.setWidgetsInteractive) await API.setWidgetsInteractive(val);
+  });
+
+  // ── Z-Order: Superimpose All ──────────────────────────────────────
+  const zSep = document.createElement('div');
+  zSep.className = 'inspector-separator';
+  inspectorContent.appendChild(zSep);
+
+  const zLabel = document.createElement('div');
+  zLabel.className = 'inspector-section-label';
+  zLabel.textContent = 'Z-ORDER';
+  inspectorContent.appendChild(zLabel);
+
+  const getW = () => {
+    const list = (currentMode === 'same' || currentMode === 'different')
+      ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+      : (settings.globalConfig?.widgets || []);
+    return list[selectedWidgetIndex];
+  };
+
+  addInspectorCheckbox('Float Above All Windows', widget.superimposeAll || false, (val) => {
+    widget.superimposeAll = val;
+    // superimposeTaskbar always follows superimposeAll
+    widget.superimposeTaskbar = val;
+    const w = getW();
+    if (w) { w.superimposeAll = val; w.superimposeTaskbar = val; }
+    saveCurrentWidgets(false);
   });
 }
 
@@ -1366,16 +1406,19 @@ function addInspectorSelect(label, value, options, onChange) {
 }
 
 function addInspectorCheckbox(label, value, onChange) {
+  const id = `toggle-${Math.random().toString(36).slice(2)}`;
   const ctrl = document.createElement('div');
-  ctrl.className = 'inspector-control';
+  ctrl.className = 'inspector-control toggle-row';
   ctrl.innerHTML = `
-    <label class="checkbox-row">
-      <input type="checkbox" ${value ? 'checked' : ''}>
-      <span>${label}</span>
+    <span class="toggle-text">${label}</span>
+    <label class="toggle-switch small" for="${id}">
+      <input id="${id}" type="checkbox" ${value ? 'checked' : ''}>
+      <span class="toggle-slider"></span>
     </label>
   `;
   ctrl.querySelector('input').addEventListener('change', (e) => onChange(e.target.checked));
   inspectorContent.appendChild(ctrl);
+  return ctrl;
 }
 
 function addInspectorInput(label, value, type, onChange) {
@@ -1392,6 +1435,108 @@ function addInspectorTextarea(label, value, onChange) {
   ctrl.innerHTML = `<label>${label}</label><textarea rows="3">${value}</textarea>`;
   ctrl.querySelector('textarea').addEventListener('change', (e) => onChange(e.target.value));
   inspectorContent.appendChild(ctrl);
+}
+
+function addCalendarMarksSection(widget) {
+  const sep = document.createElement('div');
+  sep.className = 'inspector-separator';
+  inspectorContent.appendChild(sep);
+
+  const sectionLabel = document.createElement('div');
+  sectionLabel.className = 'inspector-section-label';
+  sectionLabel.textContent = 'MARKED DATES';
+  inspectorContent.appendChild(sectionLabel);
+
+  const SWATCHES = ['#f59e0b','#10b981','#ef4444','#6366f1','#ec4899','#06b6d4','#f97316','#a3e635'];
+
+  function getMarks() { return widget.config ? (widget.config.marks || {}) : (widget.marks || {}); }
+  function setMark(isoDate, data) {
+    if (widget.config) {
+      if (!widget.config.marks) widget.config.marks = {};
+      widget.config.marks[isoDate] = data;
+    } else {
+      if (!widget.marks) widget.marks = {};
+      widget.marks[isoDate] = data;
+    }
+    const cw = (currentMode === 'same' || currentMode === 'different')
+      ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+      : (settings.globalConfig?.widgets || []);
+    if (cw[selectedWidgetIndex]) {
+      if (!cw[selectedWidgetIndex].marks) cw[selectedWidgetIndex].marks = {};
+      cw[selectedWidgetIndex].marks[isoDate] = data;
+    }
+    saveCurrentWidgets(false);
+  }
+  function deleteMark(isoDate) {
+    if (widget.config && widget.config.marks) delete widget.config.marks[isoDate];
+    else if (widget.marks) delete widget.marks[isoDate];
+    const cw = (currentMode === 'same' || currentMode === 'different')
+      ? (settings.monitors[selectedWidgetMonitorId]?.widgets || [])
+      : (settings.globalConfig?.widgets || []);
+    if (cw[selectedWidgetIndex] && cw[selectedWidgetIndex].marks) delete cw[selectedWidgetIndex].marks[isoDate];
+    saveCurrentWidgets(false);
+    renderList();
+  }
+
+  const listEl = document.createElement('div');
+  listEl.className = 'marks-list';
+  inspectorContent.appendChild(listEl);
+
+  function renderList() {
+    listEl.innerHTML = '';
+    const marks = getMarks();
+    const dates = Object.keys(marks).sort();
+    if (dates.length === 0) {
+      listEl.innerHTML = '<div class="marks-empty">No marked dates</div>';
+    }
+    dates.forEach(iso => {
+      const { color, label } = marks[iso];
+      const row = document.createElement('div');
+      row.className = 'mark-row';
+      row.innerHTML = `
+        <span class="mark-dot-preview" style="background:${color || '#6366f1'}"></span>
+        <span class="mark-date">${iso}</span>
+        <span class="mark-label-text">${label || ''}</span>
+        <button class="mark-delete-btn" title="Remove">✕</button>
+      `;
+      row.querySelector('.mark-delete-btn').addEventListener('click', () => deleteMark(iso));
+      listEl.appendChild(row);
+    });
+  }
+  renderList();
+
+  // Add row
+  const addRow = document.createElement('div');
+  addRow.className = 'mark-add-row';
+  addRow.innerHTML = `
+    <input type="date" class="mark-date-input" title="Date">
+    <div class="mark-swatches">
+      ${SWATCHES.map(c => `<span class="mark-swatch" style="background:${c}" data-color="${c}"></span>`).join('')}
+    </div>
+    <input type="text" class="mark-label-input" placeholder="Label (optional)">
+    <button class="mark-add-btn">Add</button>
+  `;
+  inspectorContent.appendChild(addRow);
+
+  let chosenColor = SWATCHES[0];
+  addRow.querySelectorAll('.mark-swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      addRow.querySelectorAll('.mark-swatch').forEach(s => s.classList.remove('active'));
+      sw.classList.add('active');
+      chosenColor = sw.dataset.color;
+    });
+  });
+  addRow.querySelector('.mark-swatch').classList.add('active');
+
+  addRow.querySelector('.mark-add-btn').addEventListener('click', () => {
+    const dateVal = addRow.querySelector('.mark-date-input').value;
+    const labelVal = addRow.querySelector('.mark-label-input').value.trim();
+    if (!dateVal) return;
+    setMark(dateVal, { color: chosenColor, label: labelVal });
+    addRow.querySelector('.mark-date-input').value = '';
+    addRow.querySelector('.mark-label-input').value = '';
+    renderList();
+  });
 }
 
 function getWidgetsFromArea(area, monitorId) {

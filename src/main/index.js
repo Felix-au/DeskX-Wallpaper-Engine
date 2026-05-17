@@ -46,6 +46,14 @@ const wallpaperManager = require('./wallpaper-manager');
 const settingsStore = require('./settings-store');
 const trayModule = require('./tray');
 
+// ── Anti-flicker: suppress GPU compositing stutter on monitor-drag ───
+// On Windows, frameless windows flicker when dragged between monitors
+// with different DPI. `thickFrame:false` prevents Windows from adding
+// WS_THICKFRAME which triggers the DWM repaint. The GPU flag suppresses
+// the brief transparent frame Chromium paints during DPI recalculation.
+app.commandLine.appendSwitch('disable-gpu-sandbox');
+app.commandLine.appendSwitch('in-process-gpu');
+
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -70,6 +78,7 @@ function createSettingsWindow() {
     minWidth: 900,
     minHeight: 600,
     frame: false,
+    thickFrame: false,   // prevents WS_THICKFRAME DWM repaint on monitor transition
     transparent: false,
     backgroundColor: '#0a0a1a',
     show: false,
@@ -79,6 +88,7 @@ function createSettingsWindow() {
       preload: path.join(__dirname, '..', 'preload', 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      backgroundThrottling: false,
     },
   });
 
@@ -87,6 +97,19 @@ function createSettingsWindow() {
 
   settingsWindow.once('ready-to-show', () => {
     settingsWindow.show();
+  });
+
+  // Suppress flicker when dragged between monitors — force a repaint
+  // by briefly toggling the background color on each move event.
+  let moveRepaintTimer = null;
+  settingsWindow.on('move', () => {
+    if (moveRepaintTimer) return;
+    moveRepaintTimer = setTimeout(() => {
+      if (settingsWindow && !settingsWindow.isDestroyed()) {
+        settingsWindow.setBackgroundColor('#0a0a1a');
+      }
+      moveRepaintTimer = null;
+    }, 50);
   });
 
   settingsWindow.on('closed', () => {
@@ -188,75 +211,81 @@ function setupIPC() {
   // --- Overlay IPC Handlers ---
 
   // Hit-test: toggle click-through on overlay window
+  // Must search all 3 z-order layers (bottom / taskbar / topmost)
   ipcMain.on('overlay:hit-test', (event, isHit) => {
-    // Find which overlay sent this
-    const overlayWindows = wallpaperManager.getOverlayWindows();
-    for (const [monitorId, overlay] of overlayWindows) {
-      if (!overlay.isDestroyed() && overlay.webContents === event.sender) {
-        try {
-          const hwnd = require('./win32-wallpaper').bufferToHwnd(overlay.getNativeWindowHandle());
-          if (isHit) {
-            // Mouse is over a widget — allow clicks
-            overlay.setIgnoreMouseEvents(false);
-            require('./win32-wallpaper').setWindowClickThrough(hwnd, false);
-          } else {
-            // Mouse is over empty space — pass clicks through
-            overlay.setIgnoreMouseEvents(true, { forward: true });
-            require('./win32-wallpaper').setWindowClickThrough(hwnd, true);
+    const overlayLayers = wallpaperManager.getOverlayLayers();
+    outer: for (const [, layers] of overlayLayers) {
+      for (const overlay of Object.values(layers)) {
+        if (!overlay || overlay.isDestroyed()) continue;
+        if (overlay.webContents === event.sender) {
+          try {
+            const hwnd = require('./win32-wallpaper').bufferToHwnd(overlay.getNativeWindowHandle());
+            if (isHit) {
+              overlay.setIgnoreMouseEvents(false);
+              require('./win32-wallpaper').setWindowClickThrough(hwnd, false);
+            } else {
+              overlay.setIgnoreMouseEvents(true, { forward: true });
+              require('./win32-wallpaper').setWindowClickThrough(hwnd, true);
+            }
+          } catch (err) {
+            console.error('[Main] Hit-test toggle failed:', err.message);
           }
-        } catch (err) {
-          console.error('[Main] Hit-test toggle failed:', err.message);
+          break outer;
         }
-        break;
       }
     }
   });
 
   // Request keyboard focus for overlay (e.g., contenteditable widget)
   ipcMain.on('overlay:request-focus', (event) => {
-    const overlayWindows = wallpaperManager.getOverlayWindows();
-    for (const [, overlay] of overlayWindows) {
-      if (!overlay.isDestroyed() && overlay.webContents === event.sender) {
-        overlay.focus();
-        break;
+    const overlayLayers = wallpaperManager.getOverlayLayers();
+    outer: for (const [, layers] of overlayLayers) {
+      for (const overlay of Object.values(layers)) {
+        if (!overlay || overlay.isDestroyed()) continue;
+        if (overlay.webContents === event.sender) { overlay.focus(); break outer; }
       }
     }
   });
 
   // Release keyboard focus from overlay
   ipcMain.on('overlay:release-focus', (event) => {
-    const overlayWindows = wallpaperManager.getOverlayWindows();
-    for (const [, overlay] of overlayWindows) {
-      if (!overlay.isDestroyed() && overlay.webContents === event.sender) {
-        overlay.blur();
-        break;
+    const overlayLayers = wallpaperManager.getOverlayLayers();
+    outer: for (const [, layers] of overlayLayers) {
+      for (const overlay of Object.values(layers)) {
+        if (!overlay || overlay.isDestroyed()) continue;
+        if (overlay.webContents === event.sender) { overlay.blur(); break outer; }
       }
     }
   });
 
   // Widget moved via drag on desktop
   ipcMain.on('overlay:widget-moved', (event, index, x, y) => {
-    const overlayWindows = wallpaperManager.getOverlayWindows();
-    for (const [monitorId, overlay] of overlayWindows) {
-      if (!overlay.isDestroyed() && overlay.webContents === event.sender) {
-        wallpaperManager.updateWidgetPosition(monitorId, index, x, y);
-        break;
+    const overlayLayers = wallpaperManager.getOverlayLayers();
+    outer: for (const [monitorId, layers] of overlayLayers) {
+      for (const overlay of Object.values(layers)) {
+        if (!overlay || overlay.isDestroyed()) continue;
+        if (overlay.webContents === event.sender) {
+          wallpaperManager.updateWidgetPosition(monitorId, index, x, y);
+          break outer;
+        }
       }
     }
   });
 
-  // Widget config changed via interaction (e.g., clock toggled 12h)
+  // Widget config changed via interaction (e.g., clock toggled 12h, calendar mark)
   ipcMain.on('overlay:widget-config-changed', (event, index, config) => {
-    const overlayWindows = wallpaperManager.getOverlayWindows();
-    for (const [monitorId, overlay] of overlayWindows) {
-      if (!overlay.isDestroyed() && overlay.webContents === event.sender) {
-        const mode = settingsStore.getMode();
-        const monitorConfig = settingsStore.getMonitorConfig(monitorId);
-        if (monitorConfig.widgets && monitorConfig.widgets[index]) {
-          monitorConfig.widgets[index] = { ...monitorConfig.widgets[index], ...config };
-          settingsStore.setMonitorConfig(monitorId, { widgets: monitorConfig.widgets });
+    const overlayLayers = wallpaperManager.getOverlayLayers();
+    outer: for (const [monitorId, layers] of overlayLayers) {
+      for (const overlay of Object.values(layers)) {
+        if (!overlay || overlay.isDestroyed()) continue;
+        if (overlay.webContents === event.sender) {
+          const monitorConfig = settingsStore.getMonitorConfig(monitorId);
+          if (monitorConfig.widgets && monitorConfig.widgets[index]) {
+            monitorConfig.widgets[index] = { ...monitorConfig.widgets[index], ...config };
+            settingsStore.setMonitorConfig(monitorId, { widgets: monitorConfig.widgets });
+          }
+          break outer;
         }
-        break;
       }
     }
   });
