@@ -1,16 +1,21 @@
 <h1 align="center">🖥️ DeskX: Wallpaper Engine</h1>
 <p align="center">
   <strong>Set images, GIFs, videos, and HTML pages as your desktop wallpaper — with live interactive widgets</strong><br/>
-  <em>Full multi-monitor support · Spanning · Per-monitor config · Interactive Widget Overlay · Live Drag · Click-Through · Sound control</em>
+  <em>Full multi-monitor support · Spanning · Per-monitor config · 3-Layer Widget Overlay · Live Drag · Click-Through · Z-Order control</em>
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/version-2.0.0-brightgreen?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/v3.0-in_development-6366f1?style=flat-square" alt="v3 In Dev" />
   <img src="https://img.shields.io/badge/platform-Windows_10%2F11-0078D6?style=flat-square&logo=windows&logoColor=white" alt="Windows" />
   <img src="https://img.shields.io/badge/runtime-Electron_34-47848F?style=flat-square&logo=electron&logoColor=white" alt="Electron" />
   <img src="https://img.shields.io/badge/win32-koffi_FFI-orange?style=flat-square" alt="Koffi" />
   <img src="https://img.shields.io/badge/exe-standalone-brightgreen?style=flat-square" alt="Standalone" />
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License" />
 </p>
+
+> [!NOTE]
+> **Current release: v2.0.0.** The features below marked with 🔬 are part of the **v3.0 development build** (implemented and committed, but not yet in a formal release). Everything unmarked is available in the current v2.0.0 release.
 
 ---
 
@@ -26,7 +31,7 @@
 - [Project Structure](#-project-structure)
 - [Dependencies](#-dependencies)
 - [Configuration](#-configuration)
-- [Improvement Ideas](#-improvement-ideas)
+- [Roadmap](#-roadmap)
 - [Author](#-author)
 
 ---
@@ -35,7 +40,7 @@
 
 **DeskX** is a Windows desktop application that replaces your static wallpaper with dynamic media. It uses the Win32 **WorkerW injection** technique to embed content _behind_ your desktop icons — exactly where the real wallpaper lives — so it never covers your icons, taskbar, or other applications.
 
-On top of the wallpaper itself, DeskX features a **modular widget overlay system** that lets you place live, interactive widgets directly on your desktop: clocks, weather panels, calendars, countdowns, battery monitors, and more.
+On top of the wallpaper, DeskX features a **modular widget overlay system** with a **3-layer Z-order architecture** — widgets can live below apps, above the taskbar, or floating above all windows. Place clocks, weather panels, calendars, countdowns, battery monitors, and more — all interactive, draggable, and fully configurable per monitor.
 
 Supported wallpaper types:
 
@@ -60,7 +65,8 @@ Supported wallpaper types:
 | **Spanning** | Basic stretch | True span with multi-monitor tile visualization |
 | **Videos** | Not supported | Full video with sound & loop control |
 | **HTML** | Not supported | Interactive HTML/CSS/JS wallpapers |
-| **Widgets** | Not supported | 14+ live interactive desktop widgets |
+| **Widgets** | Not supported | 14 live interactive desktop widgets |
+| **Z-Order** | N/A | 3-layer: below apps / above taskbar / topmost |
 | **Taskbar** | N/A | Never covers taskbar or icons |
 
 ---
@@ -85,6 +91,24 @@ Supported wallpaper types:
 | **HTML Wallpapers** | Full browser-grade rendering — CSS animations, WebGL, JS, canvas |
 | **Interactive HTML** | Mouse and keyboard events forwarded to HTML wallpapers by default |
 
+### 🧩 Widget Overlay System
+| Feature | Description |
+|---|---|
+| **3-Layer Z-Order** | Widgets route to `bottom` (below apps), `taskbar` (above taskbar), or `topmost` (above all windows) layers |
+| **Float Above All** | Per-widget "Float Above All Windows" inspector toggle; uses `HWND_TOPMOST` Win32 layer |
+| **Transparent Overlay** | Widgets render on transparent `BrowserWindow`s above the desktop |
+| **Live Desktop Drag** | Drag widgets directly on the desktop to reposition — no settings window needed |
+| **Click-Through** | Empty overlay areas pass all mouse events through to desktop icons and the shell |
+| **Hit-Test IPC** | Mouse-over detection toggles `WS_EX_TRANSPARENT` in real time |
+| **Per-Widget Interactions** | Clock toggles, calendar marks, weather unit/forecast, quote favourites, countdown date picker, and more |
+| **Lock / Disable Toggles** | Tray menu + inspector toggles to lock dragging or disable all interactions globally |
+| **Visual Editor** | Drag-and-drop widget placement on a scaled WYSIWYG preview |
+| **Per-Monitor Widgets** | Independent widget sets for each monitor in "Same" and "Different" modes |
+| **Widget Inspector** | Per-widget panel: full interaction docs, scale, theme, type options, Z-order, draggable & interactive toggles |
+| **Live Previews** | Widget picker shows actual rendered previews for every widget type |
+| **Persistent Config** | All widget positions, sizes, configs and marks saved via `electron-store` |
+| **City Search** | WeatherAPI autocomplete with country filtering — no lat/lon required |
+
 ### 🔧 Fit Mode Preview
 | Feature | Description |
 |---|---|
@@ -99,7 +123,8 @@ Supported wallpaper types:
 | **WorkerW Injection** | Embeds windows behind desktop icons using the undocumented `0x052C` Progman message |
 | **Taskbar Hidden** | `WS_EX_TOOLWINDOW` + `WS_EX_NOACTIVATE` flags — invisible in taskbar and alt-tab |
 | **Focus Protection** | Windows are non-focusable; clicking the desktop works normally |
-| **Fallback Mode** | `HWND_BOTTOM` z-order fallback if WorkerW injection fails |
+| **3 Win32 Layer Helpers** | `pinOverlayToBottom`, `pinOverlayAboveTaskbar`, `pinOverlayTopmost` |
+| **Anti-Flicker** | `thickFrame:false` + `in-process-gpu` suppress DWM repaints on monitor drag |
 
 ### 🖥️ Desktop App
 | Feature | Description |
@@ -110,48 +135,32 @@ Supported wallpaper types:
 | **Auto-Start** | Optional "Start with Windows" toggle |
 | **Single Instance** | Only one instance runs at a time — second launch focuses the first |
 
-### 🧩 Widget Overlay System
-| Feature | Description |
-|---|---|
-| **Transparent Overlay Layer** | Widgets render on a transparent `BrowserWindow` above the desktop, below all apps |
-| **Live Desktop Drag** | Drag widgets directly on the desktop to reposition — no settings window needed |
-| **Click-Through** | Empty overlay areas pass all mouse events through to desktop icons and the shell |
-| **Hit-Test IPC** | Mouse-over detection toggles `WS_EX_TRANSPARENT` in real time for seamless click-through |
-| **Per-Widget Interactions** | Clock toggle, calendar navigation, weather refresh, quote refresh, inline text edit |
-| **Lock / Disable Toggles** | Tray menu + inspector toggles to lock dragging or disable all interactions globally |
-| **Visual Editor** | Drag-and-drop widget placement on a scaled WYSIWYG preview in the settings window |
-| **Per-Monitor Widgets** | Independent widget sets for each monitor in "Same" and "Different" modes |
-| **Widget Inspector** | Per-widget panel: description, scale, theme, type options, draggable & interactive toggles |
-| **Live Previews** | Widget picker shows actual rendered previews for every widget type |
-| **Persistent Config** | All widget positions, sizes, and settings saved via `electron-store` |
-| **City Search** | WeatherAPI autocomplete with country filtering — no lat/lon required |
-
 ---
 
 ## 🧩 Widget Library
 
-| Widget | Description | Data Source | Desktop Interaction |
-|---|---|---|---|
-| **Digital Clock** | 12h/24h time with optional date display | System time | Click to toggle 12h/24h |
-| **Analog Minimalist** | Sleek borderless analog clock face | System time | — |
-| **Analog Numbered** | Classic analog with number markers | System time | — |
-| **Weather** | Current temperature, condition icon, city name | WeatherAPI.com | Hover to refresh |
-| **Detailed Weather** | Feels Like, Humidity, Wind, UV Index + location | WeatherAPI.com | Hover to refresh |
-| **Clock + Weather** | Hybrid digital clock with live weather summary | WeatherAPI.com | — |
-| **Astronomy** | Sunrise, Sunset, and Moon phase for your location | WeatherAPI.com | Hover to refresh |
-| **Air Quality (AQI)** | US-EPA index (1–6), severity label, and PM2.5 value | WeatherAPI.com | Hover to refresh |
-| **Custom Text** | User-defined label or note displayed on screen | User config | Double-click to edit inline |
-| **HTML Embed (iframe)** | Embed any iframe-compatible third-party widget | External URL | — |
-| **Battery Status** | Visual battery bar with level % and charging indicator | Browser API | — |
-| **Countdown Timer** | Customizable event countdown (label + target date) | User config | — |
-| **Quote of the Day** | Random inspirational quote refreshed every 2 hours | type.fit API | Click to refresh |
-| **Calendar** | Month-view grid with today's date highlighted | System date | ◀ ▶ month navigation |
+| Widget | Description | Desktop Interactions |
+|---|---|---|
+| **Digital Clock** | 12h/24h time with optional date + seconds | Left-click → toggle 12h/24h · Right-click → context menu (12h, Date, Seconds) |
+| **Analog Minimalist** | Sleek borderless analog clock | Right-click → switch to numbered face (toggles back each click) |
+| **Analog Numbered** | Classic analog with 1–12 hour markers | Right-click → switch to minimalist face (toggles back each click) |
+| **Weather** | Temperature, condition icon, city name, condition tint | Click temp → toggle °C/°F · Hover → 🔄 refresh |
+| **Detailed Weather** | Feels Like, Humidity, Wind, UV + condition tint | Click temp → toggle °C/°F · ▼ 3-Day Forecast expand · Hover → 🔄 refresh |
+| **Clock + Weather** | Hybrid digital clock with live weather summary | Click temp → toggle °C/°F |
+| **Astronomy** | Sunrise, Sunset, and Moon phase | Hover → 🔄 refresh |
+| **Air Quality (AQI)** | US-EPA index, severity tint, health advisory | Hover → 🔄 refresh |
+| **Custom Text** | User-defined label or note on screen | Double-click → inline edit · Enter/click away to save |
+| **HTML Embed (iframe)** | Embed any iframe-compatible third-party widget | Hover → 🔄 reload embed |
+| **Battery Status** | Battery bar, level %, charging indicator, time remaining | Desktop notification when ≤15% unplugged |
+| **Countdown Timer** | Days/Hours/Minutes/Seconds countdown | Click timer → inline date picker · Double-click label → rename |
+| **Quote of the Day** | Random inspirational quote | Click/🔄 new quote · 📋 copy · 🤍 heart/favourite · ⭐ cycle favs · 🌐 random mode |
+| **Calendar** | Month-view grid, today highlighted, date marks | ◀ ▶ navigate · Click date → add color mark · Manage marks in inspector |
 
 ---
 
 ## 🏗 Architecture
 
-DeskX uses a **split-window architecture** (v2.0+):
+DeskX uses a **3-layer overlay architecture** (v3.0):
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -173,11 +182,16 @@ DeskX uses a **split-window architecture** (v2.0+):
 │  └─────────────────────┘   │  └─────────────────────────────────┘ │  │
 │                            │                                      │  │
 │                            │  ┌─────────────────────────────────┐ │  │
-│                            │  │  Overlay Window (transparent)   │ │  │
-│                            │  │  WS_EX_TRANSPARENT + LAYERED    │ │  │
-│                            │  │  Hit-test → toggle click-through│ │  │
-│                            │  │  All 14 interactive widgets      │ │  │
-│                            │  │  Live drag · click · keyboard   │ │  │
+│                            │  │  Layer 0 — Bottom Overlay       │ │  │
+│                            │  │  HWND_BOTTOM · default widgets  │ │  │
+│                            │  └─────────────────────────────────┘ │  │
+│                            │  ┌─────────────────────────────────┐ │  │
+│                            │  │  Layer 1 — Taskbar Overlay      │ │  │
+│                            │  │  Above taskbar, below apps      │ │  │
+│                            │  └─────────────────────────────────┘ │  │
+│                            │  ┌─────────────────────────────────┐ │  │
+│                            │  │  Layer 2 — Topmost Overlay      │ │  │
+│                            │  │  HWND_TOPMOST · Float above all │ │  │
 │                            │  └─────────────────────────────────┘ │  │
 │                            └──────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────────┘
@@ -198,10 +212,13 @@ FindWindowEx(NULL, shellParent, "WorkerW") → empty WorkerW behind icons
 SetParent(wallpaperWindow, emptyWorkerW) → wallpaper is now behind desktop icons
     │
     ▼
-overlayWindow (transparent BrowserWindow) → sits above desktop, below all apps
+3× overlay BrowserWindows per monitor → bottom / taskbar / topmost layers
     │
     ▼
-periodic SetWindowPos(HWND_BOTTOM) → maintains z-order automatically
+routeWidgetsByLayer() → distributes each widget to its correct layer window
+    │
+    ▼
+periodic SetWindowPos() per layer → maintains z-order automatically
 ```
 
 ### Overlay Hit-Test Flow
@@ -230,7 +247,7 @@ Download **`DeskX-Setup.exe`** from [Releases](https://github.com/Felix-au/DeskX
 Just double-click DeskX-Setup.exe → installs and launches automatically
 ```
 
-> **Fully standalone** — no Node.js, Python, or any runtime required. Electron bundles Chromium, Node.js, and all native dependencies (including the `koffi` Win32 FFI module) inside the installer. Nothing else to download.
+> **Fully standalone** — no Node.js, Python, or any runtime required.
 
 ### Option B — Portable ZIP
 
@@ -253,26 +270,16 @@ npm run dev
 npm run build
 ```
 
-This runs the icon generator and then `electron-forge make`, producing:
+Output:
 
 ```
 out/make/
 ├── squirrel.windows/x64/
 │   ├── DeskX-Setup.exe          # Squirrel installer (~118 MB)
-│   └── DeskX-1.0.0-full.nupkg   # Update package
+│   └── DeskX-1.0.0-full.nupkg
 └── zip/win32/x64/
     └── DeskX-win32-x64-1.0.0.zip  # Portable ZIP (~122 MB)
 ```
-
-### What's Bundled Inside the EXE
-
-- **Chromium** — full browser engine for rendering wallpapers and widgets
-- **Node.js** — Electron main process runtime
-- **koffi** — native Win32 FFI module (unpacked from asar for direct loading)
-- **electron-store** — JSON-based settings persistence
-- All application source code, HTML, CSS, and JS
-
-> **Nothing downloads at runtime.** The EXE is entirely self-contained.
 
 ---
 
@@ -287,9 +294,9 @@ DeskX/
 │
 ├── src/
 │   ├── main/                    # Electron main process
-│   │   ├── index.js             # App entry — window creation, IPC handlers
-│   │   ├── wallpaper-manager.js # Creates/manages wallpaper BrowserWindows
-│   │   ├── win32-wallpaper.js   # WorkerW injection via koffi FFI
+│   │   ├── index.js             # App entry — window creation, IPC handlers (multi-layer aware)
+│   │   ├── wallpaper-manager.js # Creates/manages wallpaper + 3-layer overlay BrowserWindows
+│   │   ├── win32-wallpaper.js   # WorkerW injection + pinOverlayToBottom/AboveTaskbar/Topmost
 │   │   ├── settings-store.js    # Persistent config (electron-store)
 │   │   └── tray.js              # System tray icon + context menu
 │   │
@@ -299,26 +306,28 @@ DeskX/
 │   └── renderer/
 │       ├── settings/            # Settings UI
 │       │   ├── index.html       # Main settings page (widget picker modal)
-│       │   ├── settings.css     # Glassmorphism design system + inspector styles
+│       │   ├── settings.css     # Glassmorphism design system + inspector + toggle switches
 │       │   └── settings.js      # UI logic, fit preview, widget editor & inspector
 │       │
-│       ├── overlay/             # Interactive widget overlay (v2.0)
+│       ├── overlay/             # Interactive widget overlay (v3.0)
 │       │   ├── index.html       # Transparent overlay page
-│       │   ├── overlay.css      # Widget styles for overlay layer
-│       │   └── overlay.js       # All 14 widgets + hit-test + live drag + interactions
+│       │   ├── overlay.css      # All widget styles incl. context menus, forecast, popover
+│       │   └── overlay.js       # All 14 widgets + hit-test + live drag + all interactions
 │       │
 │       └── wallpaper/           # Wallpaper renderer (media only)
-│           ├── index.html       # Wallpaper display page
-│           ├── renderer.css     # Fullscreen media styles
-│           └── renderer.js      # Media loading and fit modes
+│           ├── index.html
+│           ├── renderer.css
+│           └── renderer.js
 │
-├── forge.config.js              # Electron Forge build config
-├── generate-icon.js             # DX lettermark icon generator
-├── package.json                 # npm config + build scripts
-├── CHANGELOG.md                 # Post-v1.0.0 change history
-├── README.md                    # This file
+├── forge.config.js
+├── generate-icon.js
+├── package.json
+├── CHANGELOG.md
+├── README.md
+├── DeskX.md                     # Full technical guide
 ├── guide.md                     # Quick-start user guide
-└── LICENSE                      # MIT License
+├── future_ideas.md              # Roadmap and feature backlog
+└── LICENSE
 ```
 
 ---
@@ -328,27 +337,26 @@ DeskX/
 | Package | Version | Purpose |
 |---|---|---|
 | `electron` | ^34.0.0 | Desktop application framework (Chromium + Node.js) |
-| `koffi` | ^2.9.0 | Native Win32 FFI — calls User32.dll for WorkerW injection |
+| `koffi` | ^2.9.0 | Native Win32 FFI — calls User32.dll for WorkerW injection and Z-order control |
 | `electron-store` | ^8.2.0 | Persistent JSON config storage in `%AppData%` |
 | `@electron-forge/cli` | ^7.6.0 | Build toolchain for packaging and making installers |
 | `@electron-forge/maker-squirrel` | ^7.6.0 | Windows Squirrel installer maker |
 | `@electron-forge/maker-zip` | ^7.6.0 | Portable ZIP maker |
 
-> All dependencies are bundled at build time. The standalone EXE has **zero external requirements**.
-
-**External APIs used at runtime (free tier, no key required to be configured by user):**
+**External APIs used at runtime (free tier):**
 
 | API | Used By | Notes |
 |---|---|---|
-| [WeatherAPI.com](https://www.weatherapi.com/) | Weather, Detailed Weather, Clock+Weather, Astronomy, AQI widgets | Free tier, key bundled in app |
+| [WeatherAPI.com](https://www.weatherapi.com/) | Weather, Detailed Weather, Clock+Weather, Astronomy, AQI | Free tier, key bundled in app |
 | [type.fit](https://type.fit/api/quotes) | Quote of the Day widget | Free, no key required |
 | Browser `navigator.getBattery()` | Battery widget | Local only, no network |
+| Browser `Notification` API | Battery low-alert | Local only, no network |
 
 ---
 
 ## ⚙️ Configuration
 
-Settings are stored in `%AppData%/Roaming/DeskX/config.json` via `electron-store`:
+Settings are stored in `%AppData%/Roaming/DeskX/config.json`:
 
 | Setting | Values | Description |
 |---|---|---|
@@ -356,34 +364,37 @@ Settings are stored in `%AppData%/Roaming/DeskX/config.json` via `electron-store
 | **Fit** | `cover` / `contain` / `stretch` / `center` | How the wallpaper fits within the monitor |
 | **Sound** | `true` / `false` | Audio playback for video wallpapers |
 | **Loop** | `true` / `false` | Loop video playback |
-| **Interactive** | Always `true` for HTML | Mouse/keyboard forwarded to HTML wallpapers |
 | **Autostart** | `true` / `false` | Launch DeskX when Windows starts |
 | **widgetsDraggable** | `true` / `false` | Allow live drag-to-reposition on the desktop |
 | **widgetsInteractive** | `true` / `false` | Enable widget click/keyboard interactions on desktop |
-| **Per-Monitor Widgets** | Keyed by display ID | Independent widget array per monitor including type, position, scale, config |
+| **Per-Monitor Widgets** | Keyed by display ID | Independent widget array per monitor — type, position, scale, config (incl. marks, favourites, useFahrenheit, analogFace, etc.) |
 
 ---
 
-## 💡 Improvement Ideas
+## 💡 Roadmap
 
-### High Impact
-- **Wallpaper Gallery** — Built-in browser for community wallpapers (Wallpaper Engine Workshop-style).
+### v3.0 — In Development 🔬
+All items below are implemented in the dev build and will ship with the v3.0 release:
+- **3-Layer Z-Order Overlay** — widgets can float below apps, above taskbar, or above all windows
+- **Calendar Date Marking** — click any date to add color-coded marks with labels
+- **Weather °C/°F Toggle + 3-Day Forecast** — per-widget unit toggle + expandable forecast cards
+- **Analog Clock Face Toggle** — right-click to switch between minimalist and numbered face
+- **Digital Clock Context Menu** — right-click to toggle 12h/date/seconds without opening settings
+- **Quote Favourites System** — heart to save, cycle through saved quotes
+- **Battery Low-Alert Notification** — desktop notification at ≤15%
+- **Countdown Inline Date Picker** — click timer to set target date on the desktop
+- **HTML Embed Reload Button** — hover to refresh without reopening settings
+
+### v4.0 — Planned
+- **Wallpaper Gallery** — Built-in browser for community wallpapers.
 - **Playlist Mode** — Cycle through multiple wallpapers on a timer.
-- **Pomodoro Timer Widget** — On-screen productivity timer (25/5 work-break cycles).
+- **Pomodoro Timer Widget** — On-screen 25/5 work-break cycles.
 - **RSS News Ticker** — Scrolling headline widget from any RSS feed.
-
-### Medium Impact
-- **Global Hotkeys** — `Ctrl+Alt+W` to toggle interactive mode, `Ctrl+Alt+P` to pause.
+- **Global Hotkeys** — `Ctrl+Alt+W` to toggle interactive mode.
 - **World Clock Widget** — Secondary clock for a user-specified timezone.
-- **Per-Monitor Sound** — Independent volume controls for multi-monitor video setups.
 - **Transition Effects** — Crossfade, slide, or zoom between wallpaper changes.
-- **DPI Scaling** — Improved handling for mixed-DPI multi-monitor setups.
-
-### Polish
 - **Wallpaper Scheduler** — Time-based wallpaper switching (day/night themes).
-- **Performance Overlay** — Show FPS and memory usage for video/HTML wallpapers.
-- **Export/Import Config** — Share wallpaper and widget configurations between machines.
-- **Auto-Update** — Check for new versions via GitHub releases.
+- **Export/Import Config** — Share widget configurations between machines.
 
 ---
 
@@ -397,5 +408,5 @@ Settings are stored in `%AppData%/Roaming/DeskX/config.json` via `electron-store
 ---
 
 <p align="center">
-  <sub>DeskX — your desktop, your rules.</sub>
+  <sub>DeskX v3.0 — your desktop, your rules.</sub>
 </p>

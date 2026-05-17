@@ -1,6 +1,6 @@
 # DeskX — User Guide
 
-A Windows desktop wallpaper engine that supports images, GIFs, videos, and interactive HTML — with a full multi-monitor **interactive widget overlay** system. Widgets live on a transparent layer above your desktop and can be dragged, clicked, and interacted with directly — no settings window needed.
+A Windows desktop wallpaper engine that supports images, GIFs, videos, and interactive HTML — with a full multi-monitor **interactive widget overlay** system. Widgets live on a **3-layer transparent overlay** above your desktop and can be dragged, clicked, and interacted with directly — no settings window needed.
 
 > [!IMPORTANT]
 > **DeskX is fully standalone.** The installer bundles everything — Chromium, Node.js, and all native modules. No runtimes, no frameworks, no extra downloads. Just install and run.
@@ -17,11 +17,11 @@ A Windows desktop wallpaper engine that supports images, GIFs, videos, and inter
 
 ### Option B — Portable Version
 
-1. Download **`DeskX-win32-x64-1.0.0.zip`** from [Releases](https://github.com/Felix-au/DeskX-Wallpaper-Engine/releases)
+1. Download **`DeskX-win32-x64-3.0.0.zip`** from [Releases](https://github.com/Felix-au/DeskX-Wallpaper-Engine/releases)
 2. Extract the zip file to a folder of your choice
 3. Run `DeskX.exe` from the extracted folder
 
-### Option C — Build Yourslef
+### Option C — Build Yourself
 
 ```bash
 git clone https://github.com/Felix-au/DeskX-Wallpaper-Engine.git
@@ -29,9 +29,10 @@ cd DeskX-Wallpaper-Engine
 npm install
 npm run build
 ```
-Above will output the installer file in the `out/make/squirrel.windows/x64/`folder as `DeskX-Setup.exe` and a portable zip file in the `out/make/zip/win32/x64/` folder as `DeskX-win32-x64-1.0.0.zip`.
 
-### Option D — From Source
+Output files appear in `out/make/squirrel.windows/x64/DeskX-Setup.exe` and `out/make/zip/win32/x64/`.
+
+### Option D — From Source (Dev)
 
 ```bash
 git clone https://github.com/Felix-au/DeskX-Wallpaper-Engine.git
@@ -62,10 +63,6 @@ npm run dev
 > [!NOTE]
 > For **videos**, toggle Sound and Loop in the options panel below the fit preview. For **HTML** wallpapers, mouse and keyboard interaction is enabled by default.
 
-### Spanning Mode Preview
-
-When "Span" is selected, the fit preview shows your actual monitor layout as separate tiles with gaps between them. Each tile shows its portion of the wallpaper, so you can see exactly how it will look across all monitors before applying.
-
 ### Removing a Wallpaper
 
 - Click **Remove Wallpaper** in the settings window, or
@@ -89,105 +86,147 @@ DeskX lives in your system tray. Right-click for:
 
 ## 🧩 Using Widgets
 
-Widgets are live overlays displayed directly on your desktop wallpaper — clocks, weather panels, calendars, and more.
+Widgets are live overlays displayed directly on your desktop wallpaper — clocks, weather panels, calendars, countdowns, and more. They live on a **transparent overlay layer** above your desktop icons. Empty areas pass mouse clicks through to the desktop and icons normally.
 
 ### Opening the Widget Editor
 
-1. In the settings window, click **Configure Widgets** in the sidebar (under the WIDGETS section).
+1. In the settings window, click **Configure Widgets** in the sidebar.
 2. The wallpaper preview area transforms into a drag-and-drop widget editor.
 
 ### Adding a Widget
 
-- **Same Mode**: Each monitor section has its own **+ Add Widget** button. Click the one for the monitor you want to add to.
+- **Same Mode**: Each monitor section has its own **+ Add Widget** button.
 - **Different Mode**: Select a monitor tile, then click **+ Add Widget**.
 - A picker modal appears — scroll through all available widget types and click one to add it.
 
 ### Moving & Positioning
 
-Drag any widget in the editor preview to set its initial position. Its position is saved as a percentage of the monitor size so it scales at any resolution.
+Drag any widget in the editor preview to set its initial position. Position is saved as a percentage of monitor size for resolution independence.
 
 > [!TIP]
-> You can also **drag widgets directly on your desktop** — no need to open the settings window. Just grab and move any widget while the wallpaper is active.
+> You can also **drag widgets directly on your desktop** — no need to open the settings window.
 
-### Configuring a Widget
+### Configuring a Widget (Inspector)
 
-Click a widget in the editor to select it. The **Widget Settings** panel on the right updates to show:
+Click a widget in the editor to select it. The **Widget Settings** panel shows:
 
 | Control | Description |
 |---|---|
-| **Description** | A brief tip explaining the widget and its desktop interactions |
+| **Description** | Documents all desktop interactions available for this widget |
 | **Scale** | Resize the widget (0.5× to 3×) |
 | **Theme** | Light or Dark text mode |
-| **Type-specific options** | City search, custom text, embed code, countdown date, etc. |
-| **Draggable on Desktop** | Allow live drag-to-reposition directly on the desktop (on by default) |
-| **Interactive on Desktop** | Enable widget-specific click/keyboard interactions on the desktop (on by default) |
-
-> [!NOTE]
-> **Draggable** and **Interactive** are global toggles — they apply to all widgets at once. The position is automatically saved after every drag.
+| **Type-specific options** | City search, °F toggle, custom text, embed code, countdown date, etc. |
+| **Draggable on Desktop** | Allow live drag-to-reposition (global toggle) |
+| **Interactive on Desktop** | Enable widget interactions (global toggle) |
+| **Float Above All Windows** | Move widget to topmost Z-order layer (above all apps) |
 
 ### Setting a City for Weather Widgets
 
 1. Select a weather widget (Weather, Detailed Weather, Clock+Weather, Astronomy, AQI).
 2. In the Inspector, find the **Location** field.
 3. Type a city name — suggestions appear as you type.
-4. Optionally type a country name first to narrow down results.
-5. Click a suggestion to confirm — a green flash confirms the city was set.
-
-> [!NOTE]
-> The city name and country are displayed directly on the widget so you always know which location's data is shown.
+4. Click a suggestion to confirm — a green flash confirms the city was set.
 
 ### Deleting a Widget
 
-Select a widget in the editor, then click the **Delete Widget** button in the Widget Settings panel. The button is always visible at the bottom of the panel regardless of how many settings are shown.
+Select a widget in the editor, then click **Delete Widget** at the bottom of the inspector panel.
 
 ---
 
-## 🖱️ Interacting with Widgets on the Desktop
+## 🖱️ Widget Desktop Interactions — Full Reference
 
-Widgets sit on a transparent overlay layer **above** your desktop icons. Empty areas of the overlay pass mouse clicks through to the desktop and icons normally.
+### Digital Clock
 
-### Live Drag
-
-While widgets are **Draggable**, you can grab any widget and move it anywhere on screen. The new position is saved automatically.
-
-### Per-Widget Interactions
-
-| Widget | Desktop Interaction |
+| Interaction | Effect |
 |---|---|
-| **Digital Clock** | Click to toggle 12h / 24h format |
-| **Calendar** | Click **◀ ▶** arrows to navigate between months |
-| **Quote of the Day** | Click the widget to load a new random quote |
-| **Custom Text** | Double-click to edit the text inline; press Enter or click away to save |
-| **Weather / Detailed Weather / Astronomy / AQI** | Hover over widget to reveal a 🔄 refresh button |
+| **Left-click** the time | Toggle 12h ↔ 24h format |
+| **Right-click** | Context menu: toggle 12h Format / Show Date / Show Seconds |
 
-### Locking Widgets
+### Analog Minimalist / Analog Numbered
 
-To prevent accidental movement, right-click the tray icon and select **🔒 Lock Widgets**. Dragging is disabled until you unlock.
+| Interaction | Effect |
+|---|---|
+| **Right-click** | Toggle face between minimalist (no numbers) ↔ numbered (1–12) — toggles back every click |
 
-### Disabling All Interaction
+### Weather / Detailed Weather / Clock+Weather
 
-Right-click the tray → **🚫 Disable Widget Interaction** to make all widgets completely passive (no mouse or click events). Select **👆 Enable Widget Interaction** to restore.
+| Interaction | Effect |
+|---|---|
+| **Click the temperature** | Toggle °C ↔ °F (persisted to config) |
+| **Hover** | 🔄 Refresh button appears |
+| **Tap "▼ 3-Day Forecast"** | Expand/collapse Mon/Tue/Wed hi-lo forecast *(Detailed Weather only)* |
+
+### Astronomy / AQI
+
+| Interaction | Effect |
+|---|---|
+| **Hover** | 🔄 Refresh button appears |
+
+### Custom Text
+
+| Interaction | Effect |
+|---|---|
+| **Double-click** | Edit text inline |
+| **Enter** | Save and exit edit mode |
+| **Esc / Click away** | Cancel |
+
+### HTML Embed
+
+| Interaction | Effect |
+|---|---|
+| **Hover** | 🔄 Reload button appears — refreshes the embed without reopening settings |
+
+### Battery
+
+| Interaction | Effect |
+|---|---|
+| **Automatic** | Desktop notification fires when battery ≤15% while unplugged |
+
+### Countdown Timer
+
+| Interaction | Effect |
+|---|---|
+| **Click the timer digits** | Opens inline date-picker popover to change target date |
+| **Double-click the label** | Rename the countdown inline · Enter saves · Esc cancels |
+
+### Quote of the Day
+
+| Interaction | Effect |
+|---|---|
+| **Click quote / 🔄** | Load a new random quote |
+| **📋** | Copy quote text to clipboard |
+| **🤍 Heart** | Save current quote to favourites (turns ❤️) |
+| **⭐** | Switch to cycling through saved favourites only |
+| **🌐** | Switch back to random quotes from API |
+
+### Calendar
+
+| Interaction | Effect |
+|---|---|
+| **◀ / ▶ arrows** | Navigate months (shows pending mark count for each direction) |
+| **Click a date cell** | Open mark popover — choose a color dot + label, then Save |
+| **Click a marked date** | Open mark popover — edit or Delete the existing mark |
 
 ---
 
 ## 🧩 Widget Reference
 
-| Widget | What It Shows | Config Options | Desktop Interaction |
+| Widget | What It Shows | Inspector Options | Desktop Interactions |
 |---|---|---|---|
-| **Digital Clock** | Current time (12h or 24h) and optional date | 12h toggle, show date toggle | Click to toggle 12h/24h |
-| **Analog Minimalist** | Clean borderless clock hands | Theme | — |
-| **Analog Numbered** | Analog clock with hour numbers | Theme | — |
-| **Weather** | Temperature, condition icon, city + country | City search | Hover to refresh |
-| **Detailed Weather** | Feels Like, Humidity, Wind, UV + city | City search | Hover to refresh |
-| **Clock + Weather** | Digital time + weather summary + city | City search, 12h toggle | — |
-| **Astronomy** | Sunrise, Sunset, Moon phase + city | City search | Hover to refresh |
-| **Air Quality (AQI)** | US-EPA level (1–6), label, PM2.5 + city | City search | Hover to refresh |
-| **Custom Text** | Any user-written text or label | Text content | Double-click to edit inline |
-| **HTML Embed (iframe)** | Any iframe-compatible embed code | Embed code textarea | — |
-| **Battery Status** | Battery % + charging indicator | None | — |
-| **Countdown Timer** | Days/Hours/Minutes/Seconds to a target | Label, target date & time | — |
-| **Quote of the Day** | Random inspirational quote (refreshes every 2h) | None | Click to refresh |
-| **Calendar** | Current month grid, today highlighted | None | ◀ ▶ month navigation |
+| **Digital Clock** | Time (12h/24h) + optional date + seconds | 12h toggle, Show Date | Left-click: 12h/24h · Right-click: context menu |
+| **Analog Minimalist** | Clean borderless clock hands | Theme | Right-click: toggle face |
+| **Analog Numbered** | Analog clock with hour markers | Theme | Right-click: toggle face |
+| **Weather** | Temperature, condition icon, city, condition tint | City search, °F toggle | Click temp: °C/°F · Hover: refresh |
+| **Detailed Weather** | Feels Like, Humidity, Wind, UV + tint | City search, °F toggle | Click temp: °C/°F · ▼ Forecast · Hover: refresh |
+| **Clock + Weather** | Digital time + weather summary + city | City search, 12h toggle, °F toggle | Click temp: °C/°F |
+| **Astronomy** | Sunrise, Sunset, Moon phase + city | City search | Hover: refresh |
+| **Air Quality (AQI)** | US-EPA level, health advisory, PM2.5 + tint | City search | Hover: refresh |
+| **Custom Text** | Any user-written text | Text content | Double-click: inline edit |
+| **HTML Embed** | Any iframe-compatible embed | Embed code | Hover: reload |
+| **Battery Status** | Battery %, bar, charging, time remaining | — | Notification at ≤15% |
+| **Countdown Timer** | d/h/m/s to target date | Label, target date | Click timer: date picker · Double-click label: rename |
+| **Quote of the Day** | Random inspirational quote | — | Click/🔄 new · 📋 copy · 🤍 fav · ⭐ cycle · 🌐 random |
+| **Calendar** | Month grid + today + date marks | Marked Dates list | ◀▶ navigate · Click date: mark · Click mark: edit |
 
 ---
 
@@ -200,17 +239,13 @@ npm run build
 Output:
 
 ```
-out/make/squirrel.windows/x64/DeskX-Setup.exe     # Installer (~118 MB)
-out/make/zip/win32/x64/DeskX-win32-x64-1.0.0.zip  # Portable (~122 MB)
+out/make/squirrel.windows/x64/DeskX-Setup.exe     # Installer
+out/make/zip/win32/x64/DeskX-win32-x64-3.0.0.zip  # Portable
 ```
 
-**What's inside the EXE:**
-- Chromium browser engine (for rendering wallpapers and widgets)
-- Node.js runtime (Electron main process)
-- koffi native Win32 FFI module (for WorkerW desktop injection)
-- All application code, UI assets, and dependencies
+**What's inside:** Chromium engine · Node.js runtime · koffi Win32 FFI · electron-store · all app code.
 
-**Nothing downloads at runtime** — the EXE is entirely self-contained.
+**Nothing downloads at runtime** — fully self-contained.
 
 ---
 
@@ -222,10 +257,12 @@ out/make/zip/win32/x64/DeskX-win32-x64-1.0.0.zip  # Portable (~122 MB)
 | **Sound** | Options panel | Toggle audio for video wallpapers |
 | **Loop** | Options panel | Toggle video looping |
 | **Start with Windows** | Status bar | Auto-launch DeskX at boot |
-| **Widget Scale** | Widget Settings panel | Resize any individual widget |
-| **Widget Theme** | Widget Settings panel | Light or dark text for any widget |
-| **Draggable on Desktop** | Widget Settings panel | Allow live drag-to-reposition on the desktop |
-| **Interactive on Desktop** | Widget Settings panel | Enable widget click/keyboard interactions on desktop |
+| **Widget Scale** | Inspector | Resize any individual widget (0.5× – 3×) |
+| **Widget Theme** | Inspector | Light or dark text |
+| **Use Fahrenheit (°F)** | Inspector | Weather widgets: default unit |
+| **Draggable on Desktop** | Inspector | Allow live drag-to-reposition on the desktop |
+| **Interactive on Desktop** | Inspector | Enable widget click/keyboard interactions |
+| **Float Above All Windows** | Inspector | Move widget to HWND_TOPMOST layer |
 
 Settings are saved to `%AppData%/Roaming/DeskX/config.json` and persist across restarts.
 
@@ -238,4 +275,5 @@ Settings are saved to `%AppData%/Roaming/DeskX/config.json` and persist across r
 - **No GPU required** — video decoding uses Chromium's built-in codecs (hardware acceleration used when available).
 - **Single instance** — only one DeskX can run at a time. Launching a second instance focuses the first.
 - **Supported formats** — PNG, JPG, WebP, BMP, GIF, MP4, WebM, MKV, AVI, MOV, WMV, FLV, HTML.
-- **Weather widgets require internet** — they use WeatherAPI.com (free tier, key bundled). Other widgets (Clock, Calendar, Battery, Custom Text) work fully offline.
+- **Weather widgets require internet** — they use WeatherAPI.com (free tier, key bundled). All other widgets (Clock, Calendar, Battery, Custom Text, Quote, Countdown) work fully offline.
+- **Battery notification** — requires the browser Notification API permission. DeskX will prompt the first time.
