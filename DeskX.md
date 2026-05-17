@@ -1,6 +1,6 @@
-# DeskX: Wallpaper Engine — User Guide
+# DeskX: Wallpaper Engine — Technical Guide
 
-> **DeskX** is a Windows desktop application that replaces your static wallpaper with dynamic media and live interactive widgets. It embeds content _behind_ your desktop icons using the Win32 WorkerW injection technique, so your icons, taskbar, and applications are never affected. On top of any wallpaper, DeskX lets you overlay a fully configurable suite of live widgets — clocks, weather panels, calendars, air quality monitors, countdown timers, and more — each independently positioned and configured per monitor.
+> **DeskX** is a Windows desktop application that replaces your static wallpaper with dynamic media and **live interactive widgets**. It uses a **split-window architecture**: the wallpaper renders in the Win32 WorkerW layer (behind desktop icons), while an independent transparent overlay window hosts all 14 widget types with full mouse, drag, and keyboard support. Empty areas of the overlay pass clicks through to the shell, so desktop icons and the taskbar always work normally.
 
 ---
 
@@ -12,11 +12,12 @@
 4. [Full Pathway #2 — Spanning Across Monitors](#full-pathway-2--spanning-a-wallpaper-across-monitors)
 5. [Full Pathway #3 — Adding a Weather Widget](#full-pathway-3--adding-a-weather-widget)
 6. [Full Pathway #4 — Multi-Monitor Widget Setup](#full-pathway-4--independent-widgets-per-monitor)
-7. [Widget Reference — All 14 Types](#widget-reference--all-14-types)
-8. [System Tray](#system-tray)
-9. [Settings & Configuration](#settings--configuration)
-10. [Building as Standalone EXE](#building-as-standalone-exe)
-11. [Project Summary](#project-summary)
+7. [Full Pathway #5 — Interacting with Widgets on the Desktop](#full-pathway-5--interacting-with-widgets-on-the-desktop)
+8. [Widget Reference — All 14 Types](#widget-reference--all-14-types)
+9. [System Tray](#system-tray)
+10. [Settings & Configuration](#settings--configuration)
+11. [Building as Standalone EXE](#building-as-standalone-exe)
+12. [Project Summary](#project-summary)
 
 ---
 
@@ -231,7 +232,40 @@ In the **Monitor 2** section, click **+ Add Widget for Monitor 2**. Add an Air Q
 Click **Apply Wallpaper**. Each monitor's wallpaper renderer window receives only its own widget configuration. Monitor 1 shows the clock; Monitor 2 shows the AQI panel.
 
 > [!NOTE]
-> In **Different** mode, click a monitor tile in the sidebar to switch context, then use the single **+ Add Widget** button. Each monitor's wallpaper, fit mode, and widgets are all completely independent.
+> In **Different** mode, click a monitor tile in the sidebar to switch context, then use the single **+ Add Widget** button. Each monitor’s wallpaper, fit mode, and widgets are all completely independent.
+
+---
+
+## Full Pathway #5 — Interacting with Widgets on the Desktop
+
+Widgets render on a **transparent overlay window** that sits above the desktop but below all running applications. Empty areas of the overlay are fully transparent to mouse events — desktop icons, right-click menus, and drag-to-select all work normally.
+
+### Live Drag
+
+With **Draggable on Desktop** enabled (default), grab any widget and move it. The new position saves automatically via IPC.
+
+### Per-Widget Desktop Interactions
+
+| Widget | Interaction |
+|---|---|
+| **Digital Clock** | Click to toggle 12h ↗ 24h format |
+| **Calendar** | Click **◀** / **▶** arrows to navigate months |
+| **Quote of the Day** | Click anywhere on the widget to load a new quote |
+| **Custom Text** | Double-click to activate inline editing; type freely; press `Enter` or click away to save |
+| **Weather** | Hover to reveal a 🔄 refresh button; click to re-fetch |
+| **Detailed Weather** | Hover to refresh |
+| **Astronomy** | Hover to refresh |
+| **Air Quality (AQI)** | Hover to refresh |
+
+### Locking & Disabling
+
+| Tray Action | Effect |
+|---|---|
+| **🔒 Lock Widgets** | Disables drag-to-reposition globally; tray shows 🔓 to unlock |
+| **🚫 Disable Widget Interaction** | Makes all widgets fully passive (no click/hover events pass through); tray shows 👆 to re-enable |
+
+> [!NOTE]
+> When **Disable Widget Interaction** is active, the overlay behaves exactly like the old wallpaper-embedded widget layer — completely passive, click-through always on.
 
 ---
 
@@ -245,6 +279,8 @@ Displays the current time in a large, bold format.
 |---|---|
 | **12h Mode** | Toggle between 12-hour (AM/PM) and 24-hour format |
 | **Show Date** | Display the full date below the time |
+
+**Desktop interaction:** Click to toggle 12h/24h format.
 
 **Refresh rate:** Every second.
 
@@ -290,6 +326,8 @@ Shows the current temperature, weather condition icon, and city name.
 |---|---|
 | **Location** | City autocomplete search (WeatherAPI.com) |
 
+**Desktop interaction:** Hover to reveal a 🔄 refresh button.
+
 **Refresh rate:** Every 30 minutes.
 
 ---
@@ -313,6 +351,8 @@ Comprehensive weather panel with a full stats grid.
 | Config | Description |
 |---|---|
 | **Location** | City autocomplete search |
+
+**Desktop interaction:** Hover to reveal a 🔄 refresh button.
 
 **Refresh rate:** Every 30 minutes.
 
@@ -355,6 +395,8 @@ Shows astronomical data for your location.
 |---|---|
 | **Location** | City search |
 
+**Desktop interaction:** Hover to reveal a 🔄 refresh button.
+
 **Refresh rate:** Every hour.
 
 ---
@@ -384,6 +426,8 @@ Displays the US-EPA Air Quality Index with color-coded severity.
 |---|---|
 | **Location** | City search |
 
+**Desktop interaction:** Hover to reveal a 🔄 refresh button.
+
 **Refresh rate:** Every 30 minutes.
 
 ---
@@ -395,6 +439,8 @@ Displays any user-defined text on the desktop.
 | Config | Description |
 |---|---|
 | **Text Content** | Multi-line text area — anything you want shown |
+
+**Desktop interaction:** Double-click to edit inline. Press `Enter` or click away to save. Keyboard input fully supported.
 
 Use cases: Daily goals, motivational quotes, room labels on multi-monitor setups, team names, etc.
 
@@ -471,6 +517,8 @@ Displays a random inspirational quote. Refreshes every 2 hours.
 
 No config needed. Fetches from the [type.fit API](https://type.fit/api/quotes).
 
+**Desktop interaction:** Click anywhere on the widget to load a new quote immediately.
+
 **Refresh rate:** Every 2 hours.
 
 ---
@@ -496,6 +544,8 @@ Today's date cell has an accent-colored background with a glow effect.
 
 No config needed. Uses the system date. Automatically refreshes at midnight.
 
+**Desktop interaction:** Click **◀** / **▶** arrow buttons to navigate between months.
+
 ---
 
 ## System Tray
@@ -509,6 +559,8 @@ DeskX runs in the system tray. Right-click the icon for:
 | **Resume** | Resume after pause |
 | **Mute** | Silence all video wallpapers |
 | **Unmute** | Restore audio |
+| **🔒 Lock Widgets** | Disable drag-to-reposition on the desktop |
+| **🚫 Disable Widget Interaction** | Make all widgets passive (no click/keyboard events) |
 | **Remove All Wallpapers** | Clear the desktop, remove all wallpapers and widgets |
 | **Quit** | Fully exit DeskX |
 
@@ -530,6 +582,8 @@ All settings are persisted automatically to:
 | **Sound** | `true`/`false` for video wallpapers |
 | **Loop** | `true`/`false` for video wallpapers |
 | **Autostart** | Toggles Windows startup via the registry |
+| **widgetsDraggable** | `true`/`false` — allow live drag-to-reposition on the desktop |
+| **widgetsInteractive** | `true`/`false` — enable widget click/keyboard interactions |
 | **Widgets (per monitor)** | Array of widget objects keyed by display ID, each containing type, x, y, scale, theme, and type-specific config (locationQuery, customText, targetDate, etc.) |
 
 ---
@@ -574,16 +628,17 @@ DeskX is a Windows desktop application that injects dynamic wallpapers behind de
 | Component | File | Role |
 |---|---|---|
 | **App Entry** | `src/main/index.js` | Window creation, IPC handlers, autostart, single-instance lock |
-| **Wallpaper Manager** | `src/main/wallpaper-manager.js` | Creates/manages BrowserWindows per monitor or spanning; applies mode logic |
-| **Win32 Integration** | `src/main/win32-wallpaper.js` | WorkerW injection via koffi FFI (FindWindowW, EnumWindows, SetParent, SetWindowPos) |
-| **Settings Store** | `src/main/settings-store.js` | electron-store wrapper for persistent config |
-| **System Tray** | `src/main/tray.js` | Tray icon + context menu |
-| **IPC Bridge** | `src/preload/preload.js` | Secure contextBridge between main and renderer |
-| **Settings UI** | `src/renderer/settings/settings.js` | Monitor layout, fit preview, widget editor & drag, inspector panel |
-| **Settings Styles** | `src/renderer/settings/settings.css` | Glassmorphism design system, inspector controls, modal layout |
+| **Wallpaper Manager** | `src/main/wallpaper-manager.js` | Creates/manages wallpaper BrowserWindows (WorkerW) and overlay BrowserWindows per monitor |
+| **Win32 Integration** | `src/main/win32-wallpaper.js` | WorkerW injection + overlay helpers: `setWindowClickThrough`, `setupOverlayWindow`, `pinOverlayToBottom` |
+| **Settings Store** | `src/main/settings-store.js` | electron-store wrapper; includes `widgetsDraggable` and `widgetsInteractive` keys |
+| **System Tray** | `src/main/tray.js` | Tray icon + context menu including Lock Widgets and Disable Interaction toggles |
+| **IPC Bridge** | `src/preload/preload.js` | Secure contextBridge; overlay channels: `overlay:hit-test`, `overlay:widget-moved`, `overlay:request-focus` |
+| **Settings UI** | `src/renderer/settings/settings.js` | Monitor layout, fit preview, widget editor & drag, inspector panel with descriptions & toggles |
+| **Settings Styles** | `src/renderer/settings/settings.css` | Glassmorphism design system, scrollable inspector, widget description box |
 | **Widget Picker** | `src/renderer/settings/index.html` | Scrollable widget type picker modal |
-| **Wallpaper Renderer** | `src/renderer/wallpaper/renderer.js` | Media loading, fit CSS, all widget setup functions, IPC listeners |
-| **Widget Styles** | `src/renderer/wallpaper/renderer.css` | All widget-specific visual styles |
+| **Overlay Renderer** | `src/renderer/overlay/overlay.js` | All 14 widget types, hit-test loop, live drag, per-widget interactions |
+| **Overlay Styles** | `src/renderer/overlay/overlay.css` | Widget visual styles for overlay layer |
+| **Wallpaper Renderer** | `src/renderer/wallpaper/renderer.js` | Media loading and fit CSS only (no widgets) |
 
 ### Technology Stack
 

@@ -1,7 +1,7 @@
 <h1 align="center">🖥️ DeskX: Wallpaper Engine</h1>
 <p align="center">
   <strong>Set images, GIFs, videos, and HTML pages as your desktop wallpaper — with live interactive widgets</strong><br/>
-  <em>Full multi-monitor support · Spanning · Per-monitor config · Widget Overlays · Sound control · Interactive HTML</em>
+  <em>Full multi-monitor support · Spanning · Per-monitor config · Interactive Widget Overlay · Live Drag · Click-Through · Sound control</em>
 </p>
 
 <p align="center">
@@ -60,7 +60,7 @@ Supported wallpaper types:
 | **Spanning** | Basic stretch | True span with multi-monitor tile visualization |
 | **Videos** | Not supported | Full video with sound & loop control |
 | **HTML** | Not supported | Interactive HTML/CSS/JS wallpapers |
-| **Widgets** | Not supported | 12+ live interactive desktop widgets |
+| **Widgets** | Not supported | 14+ live interactive desktop widgets |
 | **Taskbar** | N/A | Never covers taskbar or icons |
 
 ---
@@ -104,7 +104,7 @@ Supported wallpaper types:
 ### 🖥️ Desktop App
 | Feature | Description |
 |---|---|
-| **System Tray** | Minimizes to tray with context menu (pause, mute, remove, quit) |
+| **System Tray** | Minimizes to tray with context menu (pause, mute, lock widgets, disable interaction, remove, quit) |
 | **Glassmorphism UI** | Dark theme with frosted glass effects, smooth transitions, Inter typography |
 | **Drag & Drop** | Drop files directly onto the settings window |
 | **Auto-Start** | Optional "Start with Windows" toggle |
@@ -113,81 +113,74 @@ Supported wallpaper types:
 ### 🧩 Widget Overlay System
 | Feature | Description |
 |---|---|
-| **Visual Editor** | Drag-and-drop widget placement directly on a scaled WYSIWYG preview |
-| **Per-Monitor Widgets** | Independent widget sets for each monitor in both "Same" and "Different" modes |
-| **Widget Inspector** | Per-widget settings panel: scale slider, theme toggle, and type-specific options |
+| **Transparent Overlay Layer** | Widgets render on a transparent `BrowserWindow` above the desktop, below all apps |
+| **Live Desktop Drag** | Drag widgets directly on the desktop to reposition — no settings window needed |
+| **Click-Through** | Empty overlay areas pass all mouse events through to desktop icons and the shell |
+| **Hit-Test IPC** | Mouse-over detection toggles `WS_EX_TRANSPARENT` in real time for seamless click-through |
+| **Per-Widget Interactions** | Clock toggle, calendar navigation, weather refresh, quote refresh, inline text edit |
+| **Lock / Disable Toggles** | Tray menu + inspector toggles to lock dragging or disable all interactions globally |
+| **Visual Editor** | Drag-and-drop widget placement on a scaled WYSIWYG preview in the settings window |
+| **Per-Monitor Widgets** | Independent widget sets for each monitor in "Same" and "Different" modes |
+| **Widget Inspector** | Per-widget panel: description, scale, theme, type options, draggable & interactive toggles |
 | **Live Previews** | Widget picker shows actual rendered previews for every widget type |
 | **Persistent Config** | All widget positions, sizes, and settings saved via `electron-store` |
 | **City Search** | WeatherAPI autocomplete with country filtering — no lat/lon required |
-| **Glassmorphism Controls** | Unified premium-styled inputs, textareas, and date pickers in the inspector |
-| **Scrollable Picker** | Internal-scroll modal with custom scrollbar handles any number of widget types |
 
 ---
 
 ## 🧩 Widget Library
 
-DeskX ships with **12 widget types** out of the box:
-
-| Widget | Description | Data Source |
-|---|---|---|
-| **Digital Clock** | 12h/24h time with optional date display | System time |
-| **Analog Minimalist** | Sleek borderless analog clock face | System time |
-| **Analog Numbered** | Classic analog with number markers | System time |
-| **Weather** | Current temperature, condition icon, city name | WeatherAPI.com |
-| **Detailed Weather** | Feels Like, Humidity, Wind, UV Index + location | WeatherAPI.com |
-| **Clock + Weather** | Hybrid digital clock with live weather summary | WeatherAPI.com |
-| **Astronomy** | Sunrise, Sunset, and Moon phase for your location | WeatherAPI.com |
-| **Air Quality (AQI)** | US-EPA index (1–6), severity label, and PM2.5 value | WeatherAPI.com |
-| **Custom Text** | User-defined label or note displayed on screen | User config |
-| **HTML Embed (iframe)** | Embed any iframe-compatible third-party widget | External URL |
-| **Battery Status** | Visual battery bar with level % and charging indicator | Browser API |
-| **Countdown Timer** | Customizable event countdown (label + target date) | User config |
-| **Quote of the Day** | Random inspirational quote refreshed every 2 hours | type.fit API |
-| **Calendar** | Month-view grid with today's date highlighted | System date |
+| Widget | Description | Data Source | Desktop Interaction |
+|---|---|---|---|
+| **Digital Clock** | 12h/24h time with optional date display | System time | Click to toggle 12h/24h |
+| **Analog Minimalist** | Sleek borderless analog clock face | System time | — |
+| **Analog Numbered** | Classic analog with number markers | System time | — |
+| **Weather** | Current temperature, condition icon, city name | WeatherAPI.com | Hover to refresh |
+| **Detailed Weather** | Feels Like, Humidity, Wind, UV Index + location | WeatherAPI.com | Hover to refresh |
+| **Clock + Weather** | Hybrid digital clock with live weather summary | WeatherAPI.com | — |
+| **Astronomy** | Sunrise, Sunset, and Moon phase for your location | WeatherAPI.com | Hover to refresh |
+| **Air Quality (AQI)** | US-EPA index (1–6), severity label, and PM2.5 value | WeatherAPI.com | Hover to refresh |
+| **Custom Text** | User-defined label or note displayed on screen | User config | Double-click to edit inline |
+| **HTML Embed (iframe)** | Embed any iframe-compatible third-party widget | External URL | — |
+| **Battery Status** | Visual battery bar with level % and charging indicator | Browser API | — |
+| **Countdown Timer** | Customizable event countdown (label + target date) | User config | — |
+| **Quote of the Day** | Random inspirational quote refreshed every 2 hours | type.fit API | Click to refresh |
+| **Calendar** | Month-view grid with today's date highlighted | System date | ◀ ▶ month navigation |
 
 ---
 
 ## 🏗 Architecture
 
+DeskX uses a **split-window architecture** (v2.0+):
+
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                      DeskX Desktop App                           │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────────┐  │
-│  │                   Main Process (Node.js)                   │  │
-│  │                                                            │  │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐    │  │
-│  │  │ Settings     │  │ Wallpaper    │  │ Win32          │    │  │
-│  │  │ Store        │  │ Manager      │  │ Wallpaper      │    │  │
-│  │  │              │  │              │  │                │    │  │
-│  │  │ electron-    │  │ Creates      │  │ FindWindowW    │    │  │
-│  │  │ store JSON   │  │ BrowserWins  │  │ EnumWindows    │    │  │
-│  │  │ persistence  │  │ per monitor  │  │ SetParent      │    │  │
-│  │  └──────────────┘  │ or spanning  │  │ SetWindowPos   │    │  │
-│  │                    └──────┬───────┘  │ (via koffi)    │    │  │
-│  │                           │attach    └───────┬────────┘    │  │
-│  │                           └──────────────────┘             │  │
-│  │                                                            │  │
-│  │  ┌──────────────┐  ┌──────────────────────────────────┐    │  │
-│  │  │ System Tray  │  │ IPC Bridge (preload.js)          │    │  │
-│  │  │ (tray.js)    │  │ contextBridge.exposeInMainWorld  │    │  │
-│  │  └──────────────┘  └──────────────────────────────────┘    │  │
-│  └────────────────────────────────────────────────────────────┘  │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────────┐  │
-│  │               Renderer Processes (Chromium)                │  │
-│  │                                                            │  │
-│  │  ┌──────────────────────┐    ┌───────────────────────────┐ │  │
-│  │  │ Settings Window      │    │ Wallpaper Window(s)       │ │  │
-│  │  │                      │    │                           │ │  │
-│  │  │ Monitor layout       │    │ <img>/<video>/<iframe>    │ │  │
-│  │  │ File browser         │    │ + #widget-container       │ │  │
-│  │  │ Fit preview grid     │    │   └ addWidget()           │ │  │
-│  │  │ Widget editor (WYSIWYG)   │   └ setupClock/Weather/.. │ │  │
-│  │  │ Inspector panel      │    │ per-monitor or spanning   │ │  │
-│  │  └──────────────────────┘    └───────────────────────────┘ │  │
-│  └────────────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                        DeskX Desktop App                             │
+│                                                                      │
+│  ┌──────────────────────────────────────────────────────────────┐    │
+│  │                    Main Process (Node.js)                    │    │
+│  │  Settings Store · Wallpaper Manager · Win32 FFI · Tray       │    │
+│  │  IPC Bridge (preload.js / contextBridge)                     │    │
+│  └──────────────────────────────────────────────────────────────┘    │
+│                                                                      │
+│  ┌─────────────────────┐   ┌──────────────────────────────────────┐  │
+│  │  Settings Window    │   │  Per-Monitor Renderer Processes      │  │
+│  │  (Chromium)         │   │                                      │  │
+│  │  Monitor layout     │   │  ┌─────────────────────────────────┐ │  │
+│  │  Fit preview        │   │  │  Wallpaper Window (WorkerW)     │ │  │
+│  │  Widget editor      │   │  │  <img> / <video> / <iframe>     │ │  │
+│  │  Inspector panel    │   │  │  media-only, no widgets         │ │  │
+│  └─────────────────────┘   │  └─────────────────────────────────┘ │  │
+│                            │                                      │  │
+│                            │  ┌─────────────────────────────────┐ │  │
+│                            │  │  Overlay Window (transparent)   │ │  │
+│                            │  │  WS_EX_TRANSPARENT + LAYERED    │ │  │
+│                            │  │  Hit-test → toggle click-through│ │  │
+│                            │  │  All 14 interactive widgets      │ │  │
+│                            │  │  Live drag · click · keyboard   │ │  │
+│                            │  └─────────────────────────────────┘ │  │
+│                            └──────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ### WorkerW Injection Flow
@@ -202,28 +195,27 @@ EnumWindows → find window containing SHELLDLL_DefView
 FindWindowEx(NULL, shellParent, "WorkerW") → empty WorkerW behind icons
     │
     ▼
-SetParent(ourWindow, emptyWorkerW) → window is now behind desktop icons
+SetParent(wallpaperWindow, emptyWorkerW) → wallpaper is now behind desktop icons
     │
     ▼
-SetWindowPos(x, y, w, h) → reposition for correct monitor / spanning bounds
+overlayWindow (transparent BrowserWindow) → sits above desktop, below all apps
+    │
+    ▼
+periodic SetWindowPos(HWND_BOTTOM) → maintains z-order automatically
 ```
 
-### Widget Rendering Pipeline
+### Overlay Hit-Test Flow
 
 ```
-User picks widget type → addWidget(config) called
+mousemove → document.elementFromPoint(x, y)
     │
-    ▼
-createWidgetDiv() → glassmorphism container div with drag handles
+    ├─ widget element found → send overlay:hit-test(true)
+    │       → setIgnoreMouseEvents(false) + clear WS_EX_TRANSPARENT
+    │       → widget receives clicks / keyboard
     │
-    ▼
-switch(widget.type) → setupDigitalClock / setupWeather / setupCalendar / …
-    │
-    ▼
-API fetch (WeatherAPI / type.fit / Browser API) → innerHTML update
-    │
-    ▼
-setInterval() → periodic refresh  +  widget.cleanup = clearInterval
+    └─ no widget → send overlay:hit-test(false)
+            → setIgnoreMouseEvents(true, forward) + set WS_EX_TRANSPARENT
+            → desktop icons receive clicks normally
 ```
 
 ---
@@ -310,10 +302,15 @@ DeskX/
 │       │   ├── settings.css     # Glassmorphism design system + inspector styles
 │       │   └── settings.js      # UI logic, fit preview, widget editor & inspector
 │       │
-│       └── wallpaper/           # Wallpaper renderer
-│           ├── index.html       # Wallpaper display page + #widget-container
-│           ├── renderer.css     # Fullscreen media styles + all widget styles
-│           └── renderer.js      # Media loading, fit modes, widget setup functions
+│       ├── overlay/             # Interactive widget overlay (v2.0)
+│       │   ├── index.html       # Transparent overlay page
+│       │   ├── overlay.css      # Widget styles for overlay layer
+│       │   └── overlay.js       # All 14 widgets + hit-test + live drag + interactions
+│       │
+│       └── wallpaper/           # Wallpaper renderer (media only)
+│           ├── index.html       # Wallpaper display page
+│           ├── renderer.css     # Fullscreen media styles
+│           └── renderer.js      # Media loading and fit modes
 │
 ├── forge.config.js              # Electron Forge build config
 ├── generate-icon.js             # DX lettermark icon generator
@@ -361,6 +358,8 @@ Settings are stored in `%AppData%/Roaming/DeskX/config.json` via `electron-store
 | **Loop** | `true` / `false` | Loop video playback |
 | **Interactive** | Always `true` for HTML | Mouse/keyboard forwarded to HTML wallpapers |
 | **Autostart** | `true` / `false` | Launch DeskX when Windows starts |
+| **widgetsDraggable** | `true` / `false` | Allow live drag-to-reposition on the desktop |
+| **widgetsInteractive** | `true` / `false` | Enable widget click/keyboard interactions on desktop |
 | **Per-Monitor Widgets** | Keyed by display ID | Independent widget array per monitor including type, position, scale, config |
 
 ---
