@@ -24,6 +24,19 @@
 
 ## How It Works — The Big Picture
 
+```mermaid
+flowchart LR
+    A["You pick a wallpaper\n(image/GIF/video/HTML)"] --> B["DeskX Settings UI\nfit mode, mode, opts"]
+    B --> C["WorkerW Injection\nWin32 API via koffi FFI"]
+    C --> D["Wallpaper appears\nbehind icons & taskbar"]
+    B --> E["Widget Editor\ndrag & drop · Inspector · city search"]
+    E --> F["Widget Config\nsaved per monitor\nto electron-store"]
+    F --> G["Widgets live on top\nof wallpaper (IPC push)"]
+```
+
+<details>
+<summary>ASCII fallback (click to expand)</summary>
+
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────────┐     ┌────────────────┐
 │  You pick    │───▶│  DeskX       │────▶│  WorkerW         │────▶│ Wallpaper     │
@@ -40,6 +53,8 @@
                    │  city search    │     │  electron-store  │     │  (IPC push)    │
                    └─────────────────┘     └──────────────────┘     └────────────────┘
 ```
+
+</details>
 
 **In plain English:**
 

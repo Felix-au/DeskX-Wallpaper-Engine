@@ -162,6 +162,32 @@ Supported wallpaper types:
 
 DeskX uses a **3-layer overlay architecture** (v3.0):
 
+```mermaid
+graph TD
+    subgraph Main["Main Process (Node.js)"]
+        STORE["Settings Store"]
+        WM["Wallpaper Manager"]
+        WIN32["Win32 FFI (koffi)"]
+        TRAY["System Tray"]
+        IPC["IPC Bridge (preload.js)"]
+    end
+
+    SW["Settings Window (Chromium)\nMonitor layout · Fit preview\nWidget editor · Inspector panel"]
+
+    subgraph PerMon["Per-Monitor Renderer Processes"]
+        WP["Wallpaper Window (WorkerW)\n&lt;img&gt; / &lt;video&gt; / &lt;iframe&gt; — no widgets"]
+        L0["Layer 0 — Bottom Overlay\nHWND_BOTTOM · default widgets"]
+        L1["Layer 1 — Taskbar Overlay\nAbove taskbar, below apps"]
+        L2["Layer 2 — Topmost Overlay\nHWND_TOPMOST · float above all"]
+    end
+
+    Main <--> SW
+    Main <--> PerMon
+```
+
+<details>
+<summary>ASCII fallback (click to expand)</summary>
+
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                        DeskX Desktop App                             │
@@ -197,7 +223,22 @@ DeskX uses a **3-layer overlay architecture** (v3.0):
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
+</details>
+
 ### WorkerW Injection Flow
+
+```mermaid
+flowchart TD
+    A["FindWindowW('Progman')\nSendMessage(0x052C)"] --> B["EnumWindows\nfind window with SHELLDLL_DefView"]
+    B --> C["FindWindowEx(NULL, shellParent, 'WorkerW')\nempty WorkerW behind icons"]
+    C --> D["SetParent(wallpaperWindow, emptyWorkerW)\nwallpaper is now behind desktop icons"]
+    D --> E["3× overlay BrowserWindows per monitor\nbottom / taskbar / topmost layers"]
+    E --> F["routeWidgetsByLayer()\ndistributes each widget to correct layer"]
+    F --> G["periodic SetWindowPos() per layer\nmaintains z-order automatically"]
+```
+
+<details>
+<summary>ASCII fallback (click to expand)</summary>
 
 ```
 FindWindowW("Progman") → SendMessage(0x052C)
@@ -221,7 +262,19 @@ routeWidgetsByLayer() → distributes each widget to its correct layer window
 periodic SetWindowPos() per layer → maintains z-order automatically
 ```
 
+</details>
+
 ### Overlay Hit-Test Flow
+
+```mermaid
+flowchart TD
+    A["mousemove\ndocument.elementFromPoint(x, y)"] --> B{Widget element found?}
+    B -->|Yes| C["overlay:hit-test(true)\nsetIgnoreMouseEvents(false)\nclear WS_EX_TRANSPARENT\nwidget receives clicks / keyboard"]
+    B -->|No| D["overlay:hit-test(false)\nsetIgnoreMouseEvents(true, forward)\nset WS_EX_TRANSPARENT\ndesktop icons receive clicks normally"]
+```
+
+<details>
+<summary>ASCII fallback (click to expand)</summary>
 
 ```
 mousemove → document.elementFromPoint(x, y)
@@ -234,6 +287,8 @@ mousemove → document.elementFromPoint(x, y)
             → setIgnoreMouseEvents(true, forward) + set WS_EX_TRANSPARENT
             → desktop icons receive clicks normally
 ```
+
+</details>
 
 ---
 
