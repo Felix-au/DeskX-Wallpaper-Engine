@@ -29,6 +29,8 @@ contextBridge.exposeInMainWorld('wallpaperAPI', {
   overlayHitTest: (isHit) => ipcRenderer.send('overlay:hit-test', isHit),
   overlayWidgetMoved: (index, x, y) => ipcRenderer.send('overlay:widget-moved', index, x, y),
   overlayWidgetConfigChanged: (index, config) => ipcRenderer.send('overlay:widget-config-changed', index, config),
+  overlayRequestFocus: () => ipcRenderer.send('overlay:request-focus'),
+  overlayReleaseFocus: () => ipcRenderer.send('overlay:release-focus'),
 
   // --- Overlay Widget APIs (main → renderer) ---
   onSetWidgets: (callback) => ipcRenderer.on('set-widgets', (_, widgets) => callback(widgets)),

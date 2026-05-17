@@ -1094,9 +1094,36 @@ function updateSelectedWidgetStyle(scale) {
   }
 }
 
+// Widget description map for all 14 widget types
+const WIDGET_DESCRIPTIONS = {
+  'digital-clock': 'Displays current time with optional seconds and date. Click on the desktop widget to toggle 12h/24h format.',
+  'analog-minimalist': 'Clean analog clock face with hour, minute, and second hands. No numbers — just pure minimalism.',
+  'analog-numbered': 'Classic analog clock with 1-12 hour markers and smooth sweeping hands.',
+  'weather': 'Shows current temperature and weather condition with icon. Location auto-detected or configurable. Hover to refresh.',
+  'weather-detailed': 'Comprehensive weather panel: temperature, feels-like, humidity, wind speed, UV index. Hover to refresh data.',
+  'clock-weather': 'Compact hybrid widget combining a digital clock with a small weather readout and city name.',
+  'astronomy': 'Tracks sunrise, sunset times and current moon phase for your location. Hover to refresh.',
+  'aqi': 'Air Quality Index monitor. Shows US-EPA level, PM2.5 concentration, and color-coded severity.',
+  'custom-text': 'Your own text on the desktop. Double-click on the desktop widget to edit inline.',
+  'embed-html': 'Embed raw HTML/iframe content as a widget. Useful for custom third-party integrations.',
+  'battery': 'Real-time battery level indicator with charging status and low-battery visual warning.',
+  'countdown': 'Counts down to a target date/time. Shows days, hours, minutes, seconds remaining.',
+  'quote': 'Displays a random inspirational quote. Click on the desktop widget or hover to refresh for a new one.',
+  'calendar': 'Month-view calendar grid highlighting today. Use ◀ ▶ arrows on the desktop to navigate months.',
+};
+
 function updateInspector(widget) {
   widgetInspector.style.display = 'flex';
   inspectorContent.innerHTML = '';
+
+  // Widget description
+  const desc = WIDGET_DESCRIPTIONS[widget.type] || '';
+  if (desc) {
+    const descEl = document.createElement('div');
+    descEl.className = 'inspector-description';
+    descEl.textContent = desc;
+    inspectorContent.appendChild(descEl);
+  }
 
   // Common: Scale
   addInspectorRange('Scale', widget.scale || 1, 0.5, 3, 0.1, (val, save) => {
@@ -1220,6 +1247,26 @@ function updateInspector(widget) {
       renderWidgetEditor();
     });
   }
+
+  // ── Common Toggles: Draggable + Interactive ────────────────────────
+
+  const sep = document.createElement('div');
+  sep.className = 'inspector-separator';
+  inspectorContent.appendChild(sep);
+
+  const draggableLabel = 'Draggable on Desktop';
+  const isDraggable = settings.widgetsDraggable !== false;
+  addInspectorCheckbox(draggableLabel, isDraggable, async (val) => {
+    settings.widgetsDraggable = val;
+    if (API.setWidgetsDraggable) await API.setWidgetsDraggable(val);
+  });
+
+  const interactiveLabel = 'Interactive on Desktop';
+  const isInteractive = settings.widgetsInteractive !== false;
+  addInspectorCheckbox(interactiveLabel, isInteractive, async (val) => {
+    settings.widgetsInteractive = val;
+    if (API.setWidgetsInteractive) await API.setWidgetsInteractive(val);
+  });
 }
 
 function addInspectorLocationSearch(label, value, onSelect) {

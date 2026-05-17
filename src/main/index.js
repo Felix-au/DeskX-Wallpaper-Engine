@@ -212,6 +212,28 @@ function setupIPC() {
     }
   });
 
+  // Request keyboard focus for overlay (e.g., contenteditable widget)
+  ipcMain.on('overlay:request-focus', (event) => {
+    const overlayWindows = wallpaperManager.getOverlayWindows();
+    for (const [, overlay] of overlayWindows) {
+      if (!overlay.isDestroyed() && overlay.webContents === event.sender) {
+        overlay.focus();
+        break;
+      }
+    }
+  });
+
+  // Release keyboard focus from overlay
+  ipcMain.on('overlay:release-focus', (event) => {
+    const overlayWindows = wallpaperManager.getOverlayWindows();
+    for (const [, overlay] of overlayWindows) {
+      if (!overlay.isDestroyed() && overlay.webContents === event.sender) {
+        overlay.blur();
+        break;
+      }
+    }
+  });
+
   // Widget moved via drag on desktop
   ipcMain.on('overlay:widget-moved', (event, index, x, y) => {
     const overlayWindows = wallpaperManager.getOverlayWindows();

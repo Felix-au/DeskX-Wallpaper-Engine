@@ -194,7 +194,7 @@ function createOverlayWindow(display) {
     skipTaskbar: true,
     resizable: false,
     movable: false,
-    focusable: false,
+    focusable: true,
     fullscreenable: false,
     show: false,
     hasShadow: false,
@@ -238,8 +238,8 @@ function createOverlayWindow(display) {
     }
   });
 
-  // Prevent focus
-  win.on('focus', () => win.blur());
+  // Note: We allow focus so keyboard events reach contenteditable widgets.
+  // Z-order is maintained by the periodic pinOverlayToBottom timer.
 
   return win;
 }

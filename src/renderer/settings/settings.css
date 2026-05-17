@@ -609,12 +609,50 @@ button:focus:not(:focus-visible) { outline: none; }
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
+  min-height: 0; /* allow flex shrink for scrolling */
+  padding-right: 4px;
+}
+
+/* Scrollbar for inspector internal scroll */
+#inspector-content::-webkit-scrollbar {
+  width: 4px;
+}
+#inspector-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+#inspector-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+#inspector-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .inspector-footer {
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid var(--border);
+  flex-shrink: 0; /* prevent delete button from scrolling away */
+}
+
+/* Widget description text */
+.inspector-description {
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+/* Separator between type-specific and common controls */
+.inspector-separator {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+  flex-shrink: 0;
 }
 
 /* Draggable Widget in Preview */

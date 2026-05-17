@@ -429,17 +429,25 @@ function setupCustomText(widget) {
   textEl.textContent = widget.config.customText || 'Custom Text';
   widget.element.appendChild(textEl);
 
-  // Interactive: click to edit inline
+  // Interactive: double-click to edit inline
   if (isInteractive) {
     textEl.addEventListener('dblclick', (e) => {
       e.stopPropagation();
       textEl.contentEditable = 'true';
       textEl.focus();
+      // Request window focus so keyboard input works
+      if (window.wallpaperAPI && window.wallpaperAPI.overlayRequestFocus) {
+        window.wallpaperAPI.overlayRequestFocus();
+      }
     });
     textEl.addEventListener('blur', () => {
       textEl.contentEditable = 'false';
       widget.config.customText = textEl.textContent;
       notifyConfigChange(widget);
+      // Release window focus
+      if (window.wallpaperAPI && window.wallpaperAPI.overlayReleaseFocus) {
+        window.wallpaperAPI.overlayReleaseFocus();
+      }
     });
     textEl.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); textEl.blur(); }
