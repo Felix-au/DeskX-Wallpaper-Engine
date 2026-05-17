@@ -1,8 +1,6 @@
 # DeskX: Wallpaper Engine — Technical Guide
 
-> **Current release: v2.0.0.** Features marked **\[v3 DEV\]** are implemented in the development branch and will ship with the upcoming v3.0 release.
-
-> **DeskX** is a Windows desktop application that replaces your static wallpaper with dynamic media and **live interactive widgets**. It uses a **split-window architecture**: the wallpaper renders in the Win32 WorkerW layer (behind desktop icons), while independent transparent overlay windows host all 14 widget types with full mouse, drag, and keyboard support. **\[v3 DEV\]** Three Z-order layers (bottom / taskbar / topmost) allow per-widget control over window stacking. Empty overlay areas pass clicks through to the shell, so desktop icons and the taskbar always work normally.
+> **DeskX** is a Windows desktop application that replaces your static wallpaper with dynamic media and **live interactive widgets**. It uses a **split-window architecture**: the wallpaper renders in the Win32 WorkerW layer (behind desktop icons), while an independent transparent overlay window hosts all 14 widget types with full mouse, drag, and keyboard support. Empty areas of the overlay pass clicks through to the shell, so desktop icons and the taskbar always work normally.
 
 ---
 
@@ -19,36 +17,28 @@
 9. [System Tray](#system-tray)
 10. [Settings & Configuration](#settings--configuration)
 11. [Building as Standalone EXE](#building-as-standalone-exe)
-12. [Project Summary](#project-summary)
+12. [v3.0 — New Features (In Development)](#v30--new-features-in-development)
+13. [Project Summary](#project-summary)
 
 ---
 
 ## How It Works — The Big Picture
 
 ```
-┌──────────────┐     ┌──────────────┐     SetParent(wallpaperWindow, emptyWorkerW) → wallpaper is now behind desktop icons
-│  You pick    │────▶│  DeskX       │                                    │
-│  a wallpaper │     │  Settings UI │                                    ▼
-│  (image/GIF/ │     │  fit mode,   │     3× overlay BrowserWindows per monitor (bottom / taskbar / topmost) [v3 DEV]
-│  video/HTML) │     │  mode, opts  │                                    │
-└──────────────┘     └──────┬───────┘                                    ▼
-                            │             routeWidgetsByLayer() → distributes each widget to its correct layer [v3 DEV]
-                            │                                    │
-                            │                                    ▼
-                            │             periodic SetWindowPos() per layer → maintains z-order automatically
+┌──────────────┐     ┌──────────────┐     ┌──────────────────┐     ┌────────────────┐
+│  You pick    │────▶│  DeskX       │────▶│  WorkerW         │────▶│  Wallpaper     │
+│  a wallpaper │     │  Settings UI │     │  Injection       │     │  Appears       │
+│  (image/GIF/ │     │  fit mode,   │     │  (Win32 API)     │     │  behind icons  │
+│  video/HTML) │     │  mode, opts  │     │  via koffi FFI   │     │  & taskbar     │
+└──────────────┘     └──────┬───────┘     └──────────────────┘     └────────────────┘
                             │
-                            │  ┌─────────────────────────────────┐
-                            │  │  Layer 0 — Bottom Overlay       │
-                            │  │  HWND_BOTTOM · default widgets  │
-                            │  └─────────────────────────────────┘
-                            │  ┌─────────────────────────────────┐
-                            │  │  Layer 1 — Taskbar Overlay [v3] │
-                            │  │  Above taskbar, below apps      │
-                            │  └─────────────────────────────────┘
-                            │  ┌─────────────────────────────────┐
-                            │  │  Layer 2 — Topmost Overlay [v3] │
-                            │  │  HWND_TOPMOST · above all apps  │
-                            │  └─────────────────────────────────┘
+                            ▼
+                   ┌─────────────────┐     ┌──────────────────┐     ┌────────────────┐
+                   │  Widget Editor  │────▶│  Widget Config   │────▶│  Widgets live  │
+                   │  (drag & drop)  │     │  saved per       │     │  on top of     │
+                   │  Inspector panel│     │  monitor to      │     │  wallpaper     │
+                   │  city search    │     │  electron-store  │     │  (IPC push)    │
+                   └─────────────────┘     └──────────────────┘     └────────────────┘
 ```
 
 **In plain English:**
@@ -259,17 +249,20 @@ With **Draggable on Desktop** enabled (default), grab any widget and move it. Th
 
 | Widget | Interaction |
 |---|---|
-| **Digital Clock** | Left-click → toggle 12h/24h · **\[v3\]** Right-click → context menu (12h / Show Date / Show Seconds) |
-| **Analog Minimalist / Numbered** | **\[v3\]** Right-click → toggle face between minimalist ↔ numbered (every click) |
-| **Calendar** | Click **◀ ▶** to navigate months · **\[v3\]** Click any date → add color mark + label · Click marked date → edit/delete |
-| **Quote of the Day** | Click to load new quote · **\[v3\]** 📋 copy · 🤍 save favourite · ⭐ cycle favs · 🌐 back to random |
-| **Custom Text** | Double-click → inline edit; Enter saves; Esc cancels |
-| **Weather / Detailed / Clock+Weather** | Hover → 🔄 refresh · **\[v3\]** Click temp → toggle °C/°F |
-| **Detailed Weather** | **\[v3\]** Tap ▼ 3-Day Forecast → expand hi/lo forecast cards |
-| **Astronomy / AQI** | Hover → 🔄 refresh |
-| **HTML Embed** | **\[v3\]** Hover → 🔄 reload embed |
-| **Battery** | **\[v3\]** Desktop notification fires when ≤15% unplugged |
-| **Countdown Timer** | **\[v3\]** Click timer digits → inline date-picker popover · Double-click label → rename (Enter saves, Esc cancels) |
+| **Digital Clock** | Left-click to toggle 12h/24h · Right-click → context menu: toggle 12h, Show Date, Show Seconds |
+| **Analog Minimalist** | Right-click → switch to numbered face (toggles back on next right-click) |
+| **Analog Numbered** | Right-click → switch to minimalist face (toggles back on next right-click) |
+| **Calendar** | Click **◀** / **▶** to navigate · Click any date cell → add color mark + label · Click marked date → edit/delete |
+| **Quote of the Day** | Click/🔄 load new · 📋 copy · 🤍 heart to favourite · ⭐ cycle favourites only · 🌐 back to random |
+| **Custom Text** | Double-click to activate inline editing; press `Enter` or click away to save · `Esc` to cancel |
+| **Weather** | Click temperature → toggle °C/°F · Hover → 🔄 refresh |
+| **Detailed Weather** | Click temperature → toggle °C/°F · Tap ▼ 3-Day Forecast → expand hi/lo cards · Hover → 🔄 refresh |
+| **Clock + Weather** | Click temperature → toggle °C/°F |
+| **Astronomy** | Hover to refresh |
+| **Air Quality (AQI)** | Hover to refresh |
+| **HTML Embed** | Hover → 🔄 reload button to refresh embed |
+| **Battery** | Automatic desktop notification when battery ≤15% while unplugged |
+| **Countdown** | Click timer digits → inline date-picker popover · Double-click label → rename inline |
 
 ### Locking & Disabling
 
@@ -287,39 +280,70 @@ With **Draggable on Desktop** enabled (default), grab any widget and move it. Th
 
 ### ⏰ Digital Clock
 
+Displays the current time in a large, bold format.
+
 | Config | Description |
 |---|---|
-| **12h Mode** | Toggle 12h/24h |
-| **Show Date** | Show full date below time |
+| **12h Mode** | Toggle between 12-hour (AM/PM) and 24-hour format |
+| **Show Date** | Display the full date below the time |
 
-**Desktop interactions:** Left-click → toggle 12h/24h · **\[v3\]** Right-click → context menu (12h / Date / Seconds).
+**Desktop interactions:**
+- **Left-click** the time → toggle 12h/24h format
+- **Right-click** → context menu with live toggles: 12h Format / Show Date / Show Seconds (changes apply instantly and persist)
 
 **Refresh rate:** Every second.
 
 ---
 
-### 🕐 Analog Minimalist / Analog Numbered
+### 🕐 Analog Minimalist
 
-Minimalist (no numbers) or Classic (1–12 markers) analog clock faces.
+A clean, borderless analog clock with hour, minute, and red second hands.
 
 | Config | Description |
 |---|---|
-| **Theme** | Light or Dark hands |
+| **Theme** | Light (white hands) or Dark (black hands) |
 
-**\[v3\] Desktop interaction:** Right-click to toggle between minimalist and numbered face — persisted to config. Toggles back on every subsequent right-click.
+**Desktop interaction:** Right-click → switch to numbered face. Right-click again → switch back. Toggles every right-click. Face choice persisted in config.
 
-**Refresh rate:** Continuous `requestAnimationFrame`.
+**Refresh rate:** Every second (requestAnimationFrame).
+
+---
+
+### 🕐 Analog Numbered
+
+Analog clock with hour numbers (1–12) positioned around the face.
+
+| Config | Description |
+|---|---|
+| **Theme** | Light or Dark |
+
+**Desktop interaction:** Right-click → switch to minimalist face. Right-click again → switch back.
+
+**Refresh rate:** Every second (requestAnimationFrame).
 
 ---
 
 ### ☁️ Weather
 
+Shows the current temperature, weather condition icon, and city name.
+
+```
+┌──────────────────────────┐
+│  🌤️   24°C               │
+│  Partly Cloudy           │
+│  London, United Kingdom  │
+└──────────────────────────┘
+```
+
 | Config | Description |
 |---|---|
 | **Location** | City autocomplete search (WeatherAPI.com) |
-| **\[v3\] Use Fahrenheit** | Toggle default unit |
+| **Use Fahrenheit (°F)** | Default unit for temperature display |
 
-**Desktop interactions:** Hover → 🔄 refresh · **\[v3\]** Click temperature → toggle °C/°F · **\[v3\]** Background tints to match condition.
+**Desktop interactions:**
+- **Click the temperature** → toggle °C ↔ °F (persisted per widget)
+- **Background tint** changes automatically to match condition (sunny=amber, rain=blue, snow=light-blue, thunder=purple, overcast=grey)
+- **Hover** → 🔄 refresh button
 
 **Refresh rate:** Every 30 minutes.
 
@@ -327,14 +351,31 @@ Minimalist (no numbers) or Classic (1–12 markers) analog clock faces.
 
 ### 🌡️ Detailed Weather
 
-Full stats: temp, feels-like, humidity, wind, UV index.
+Comprehensive weather panel with a full stats grid.
+
+```
+┌──────────────────────────┐
+│  24°C  🌤️                │
+│  Partly Cloudy           │
+│  London, United Kingdom  │
+│  Feels Like: 22°C        │
+│  Humidity: 68%           │
+│  Wind: 14 km/h           │
+│  UV Index: 3             │
+│  ▼ 3-Day Forecast        │
+└──────────────────────────┘
+```
 
 | Config | Description |
 |---|---|
 | **Location** | City autocomplete search |
-| **\[v3\] Use Fahrenheit** | Toggle default unit |
+| **Use Fahrenheit (°F)** | Default unit for temperature display |
 
-**Desktop interactions:** Hover → 🔄 refresh · **\[v3\]** Click temperature → toggle °C/°F · **\[v3\]** Tap ▼ 3-Day Forecast → expand Mon/Tue/Wed hi/lo cards · **\[v3\]** Condition background tint.
+**Desktop interactions:**
+- **Click the temperature** → toggle °C ↔ °F
+- **Tap ▼ 3-Day Forecast** → expands Mon/Tue/Wed hi/lo cards (fetched from `forecast.json`; respects current unit)
+- **Condition tint** applied to widget background automatically
+- **Hover** → 🔄 refresh
 
 **Refresh rate:** Every 30 minutes.
 
@@ -344,13 +385,17 @@ Full stats: temp, feels-like, humidity, wind, UV index.
 
 Hybrid widget: digital time on top, weather summary below.
 
+```
+┌──────────────────────────┐
+│  12:45                   │
+│  🌤️  24°C   London       │
+└──────────────────────────┘
+```
+
 | Config | Description |
 |---|---|
 | **Location** | City search |
 | **12h Mode** | Toggle 12/24h |
-| **\[v3\] Use Fahrenheit** | Toggle default unit |
-
-**\[v3\] Desktop interaction:** Click temperature → toggle °C/°F.
 
 **Refresh rate:** Clock — every second. Weather — every 30 minutes.
 
@@ -404,7 +449,7 @@ Displays the US-EPA Air Quality Index with color-coded severity.
 |---|---|
 | **Location** | City search |
 
-**Desktop interaction:** Hover to reveal a 🔄 refresh button.
+**Desktop interaction:** Hover to refresh. Background tints to match severity level (green → yellow → amber → red → dark red → near-black). One-line health advisory displayed below the level label.
 
 **Refresh rate:** Every 30 minutes.
 
@@ -426,25 +471,38 @@ Use cases: Daily goals, motivational quotes, room labels on multi-monitor setups
 
 ### 🪟 HTML Embed (iframe)
 
+Embeds any iframe-compatible HTML snippet directly on your desktop.
+
 | Config | Description |
 |---|---|
 | **Embed Code** | Paste the full `<iframe>` tag from any service |
 
-**\[v3\] Desktop interaction:** Hover → 🔄 reload button re-renders the embed without opening settings.
+Use cases: Spotify Now Playing, Twitch stream widget, custom clock from a web service, etc.
+
+**Desktop interaction:** Hover → 🔄 reload button appears. Clicking it re-renders the embed container without needing to open settings.
 
 > [!NOTE]
-> Some sites block iframe embedding via `X-Frame-Options`. Works best with services that provide explicit embed codes.
+> This widget renders the raw HTML/iframe. Some sites block iframe embedding (X-Frame-Options header). Works best with services that explicitly provide embed codes.
 
 ---
 
 ### 🔋 Battery Status
 
-Shows battery level, visual bar, charging state, and estimated time remaining.
+Shows your laptop's battery level with a visual bar and charging indicator, plus estimated time remaining.
+
+```
+┌────────────────────────┐
+│  [████████░░] 78%      │
+│  ⚡ Charging  ~1h 20m  │
+└────────────────────────┘
+```
 
 - Bar turns red when battery is below 20%.
 - Lightning bolt (⚡) appears when charging.
-- **\[v3\]** Estimated time remaining displayed (`~2h 15m`).
-- **\[v3\]** Desktop notification fires once when battery ≤15% while unplugged.
+- Time remaining shown as `~2h 15m` (discharging) or `~45m` (charging to full).
+- **Desktop notification** fires automatically when battery drops to ≤15% while unplugged (fires once per session). Threshold configurable via `widget.config.lowBatteryAlert`.
+
+**No config needed.** Uses the browser `navigator.getBattery()` API. Works offline.
 
 **Refresh rate:** Every 60 seconds.
 
@@ -452,12 +510,28 @@ Shows battery level, visual bar, charging state, and estimated time remaining.
 
 ### ⏳ Countdown Timer
 
+Counts down to a user-specified date and time.
+
+```
+┌────────────────────────────┐
+│  EXAM DAY                  │
+│  12d  04h  35m  22s        │
+└────────────────────────────┘
+```
+
 | Config | Description |
 |---|---|
-| **Label** | Event name (e.g., "Exam Day") — also editable directly on desktop |
-| **Target Date** | Date + time picker |
+| **Label** | Name for the event (e.g., "Exam Day", "Launch", "Vacation") |
+| **Target Date** | Date + time picker for the countdown target |
 
-**\[v3\] Desktop interactions:** Click timer digits → inline `datetime-local` popover to change target date · Double-click label → rename inline (Enter saves, Esc cancels) · Pulses with glow animation on completion.
+When the countdown reaches zero the widget pulses with an indigo glow and shows "[Label] Finished! 🎉".
+
+**Desktop interactions:**
+- **Click the timer digits** → opens a dark inline date-picker popover directly on the desktop — set a new target without opening settings. Save or Cancel.
+- **Double-click the label** → rename inline. Press `Enter` to save, `Esc` to cancel.
+
+> [!NOTE]
+> The DOM is built once at widget setup. The timer updates only text nodes each second, so label editing is never interrupted by tick redraws.
 
 **Refresh rate:** Every second.
 
@@ -465,30 +539,61 @@ Shows battery level, visual bar, charging state, and estimated time remaining.
 
 ### 💬 Quote of the Day
 
-Displays a random inspirational quote.
+Displays a random inspirational quote. Refreshes every 2 hours.
+
+```
+┌──────────────────────────────────┐
+│  "The only way to do great work  │
+│   is to love what you do."       │
+│                — Steve Jobs      │
+│  🤍  ⭐  🌐              📋      │
+└──────────────────────────────────┘
+```
 
 No config needed. Fetches from the [type.fit API](https://type.fit/api/quotes).
 
-**Desktop interactions:** Click/🔄 → new quote · 📋 copy to clipboard · **\[v3\]** 🤍 heart → save to favourites (❤️ when saved) · **\[v3\]** ⭐ → cycle through saved favourites only · **\[v3\]** 🌐 → back to random quotes.
+**Desktop interactions:**
+- **Click quote body / 🔄** → load a new random quote
+- **📋** → copy `"quote" — Author` to clipboard (shows "Copied!" flash)
+- **🤍 Heart** → save current quote to favourites (turns ❤️; click again to remove)
+- **⭐** → switch to cycling through saved favourites only
+- **🌐** → switch back to random mode (API)
 
-**Refresh rate:** On demand / every 2 hours.
+Favourites are stored in `widget.config.favourites` and persist across restarts.
+
+**Refresh rate:** Every 2 hours (random mode) / immediate cycle (favourites mode).
 
 ---
 
 ### 📅 Calendar
 
-Shows the current month as a grid, with today highlighted.
+Shows the current month as a grid with today highlighted. Supports **date marking** — add color-coded dots and labels to any date.
+
+```
+┌──────────────────────────────┐
+│  ◀ 1    MAY  2026    3 ▶    │
+│  S  M  T  W  T  F  S        │
+│              1   2   3       │
+│  4  5  6  7  8  9  10       │
+│ 11 12 13 14 15 16 17        │
+│ 18 19 20 21 22 23 24        │
+│ 25 26 27[28]29 30 31 ●      │
+│          ↑ today  ↑ mark    │
+└──────────────────────────────┘
+```
 
 Today's date cell has an accent-colored background with a glow effect.
 
-**\[v3\] Desktop interactions:**
-- Click **◀ ▶** arrows to navigate months (shows pending mark count per direction)
-- Click any date cell → color-dot + label popover (8 swatches, Save / Delete)
-- Click a marked date → edit or delete the existing mark
-- Marks persist via `widget.config.marks` (ISO-keyed object) in `electron-store`
-- **Inspector**: "Marked Dates" section lists all marks with add/edit/delete controls
+**Desktop interactions:**
+- **◀ / ▶ arrows** → navigate months. Arrows show the count of marks in the adjacent month (e.g., `◀ 1` / `3 ▶`).
+- **Click any date cell** → opens a mark popover with 8 color swatches and a label input. Click Save to add a colored dot + label pill to that date.
+- **Click a marked date** → reopens the popover to edit the color/label or Delete the mark.
 
-**Refresh rate:** Midnight auto-refresh.
+**Inspector:** The "Marked Dates" section lists all marks with color swatch, label, and a delete button. An Add button lets you create marks without navigating to the date.
+
+Marks are stored in `widget.config.marks` (ISO-date keyed object) and persist across restarts.
+
+No API needed. Uses the system date. Automatically refreshes at midnight.
 
 ---
 
@@ -563,6 +668,87 @@ out/make/
 
 ---
 
+---
+
+## v3.0 — New Features (In Development)
+
+> All features in this section are implemented in the current dev build and will ship with the official v3.0 release.
+
+### 📦 3-Layer Z-Order Overlay Architecture
+
+Each monitor now runs **three** stacked overlay `BrowserWindow`s instead of one:
+
+| Layer | Win32 Z-Order | Default For |
+|---|---|---|
+| **Bottom** | `HWND_BOTTOM` | All widgets by default |
+| **Taskbar** | Above taskbar, below apps | `superimposeTaskbar=true` |
+| **Topmost** | `HWND_TOPMOST` | `superimposeAll=true` ("Float Above All Windows") |
+
+Widgets are distributed to their correct layer by `routeWidgetsByLayer()` in `wallpaper-manager.js`. All IPC handlers (hit-test, widget-moved, config-changed) now search all 3 layers.
+
+Enable via the **"Float Above All Windows"** inspector toggle (replaces the old two-toggle Superimpose system).
+
+### 📅 Calendar Date Marking
+
+- Click any day cell → color-dot + label popover (8 swatches, text input, Save / Delete).
+- Marks render as colored dots beneath the date number; label pill shows for single marks; `+N` badge for multiple.
+- Navigation arrows show mark counts for adjacent months (`◄ 2` / `3 ►`).
+- Inspector "Marked Dates" section: manage all marks with edit/delete without navigating months.
+- Persisted in `widget.config.marks` via `electron-store`.
+
+### 🌡️ Weather Upgrades
+
+- **°C/°F toggle**: Click the temperature on any weather widget. Inspector toggle added. Persisted in `widget.config.useFahrenheit`.
+- **3-Day Forecast**: ▼ expand button on Detailed Weather — fetches `forecast.json`, renders Mon/Tue/Wed hi/lo cards respecting current unit.
+- **Condition tint**: Widget background subtly tints based on weather condition (sunny=amber, rain=blue, snow=light-blue, thunder=purple, overcast=grey).
+
+### 🕐 Analog Clock Face Toggle
+
+Right-click any analog widget to toggle between minimalist (no numbers) and numbered (1–12) face. Right-click again to switch back. Every right-click toggles. Face choice saved in `widget.config.analogFace`.
+
+Implemented cleanly: the `contextmenu` listener is attached **once** per widget lifetime — not on every rebuild — preventing the listener-stacking bug where even-numbered clicks had no effect.
+
+### ⏰ Digital Clock Context Menu
+
+Right-click the digital clock to open a custom context menu with live ✓-checked toggles for:
+- **12h Format** — switches between 12h AM/PM and 24h
+- **Show Date** — toggles the date line below the time
+- **Show Seconds** — toggles the seconds display
+
+All changes apply instantly and persist.
+
+### ⏳ Countdown Enhancements
+
+- **No-flicker DOM rewrite**: DOM is built once at setup; `update()` patches only text content each second — label editing is never interrupted by tick redraws.
+- **Inline label rename**: Double-click the label → `contentEditable` with `isEditing` guard. `Enter` saves, `Esc` cancels.
+- **Inline date picker**: Click the timer digits → dark popover with `datetime-local` input + Save/Cancel appears above the widget. Updates the countdown immediately on save.
+
+### 💬 Quote Favourites
+
+- **🤍 Heart** button saves the current quote to `widget.config.favourites`.
+- **⭐ Star** button switches to cycling through saved favourites only (no API calls).
+- **🌐 Globe** button switches back to random API mode.
+- **📋 Copy** button copies `"quote" — Author` to clipboard with a "Copied!" flash.
+- Favourites persist in `electron-store`.
+
+### 🔋 Battery Low-Alert Notification
+
+A desktop notification fires once per session when battery level drops to ≤15% while unplugged. Uses the standard browser `Notification` API. Threshold is `widget.config.lowBatteryAlert` (default 15). Time remaining is displayed on the widget using `BatteryManager.dischargingTime` / `chargingTime`.
+
+### 🧱 HTML Embed Reload
+
+Hover over an embed widget to reveal a 🔄 reload button. Clicking it re-renders the embed container without opening the settings window.
+
+### 🛡️ Settings Window Anti-Flicker
+
+Dragging the settings window between monitors with different DPI no longer flickers:
+- `thickFrame: false` on the `BrowserWindow` removes `WS_THICKFRAME`, preventing DWM repaints on monitor transitions.
+- `backgroundThrottling: false` keeps the renderer active during drag.
+- `in-process-gpu` + `disable-gpu-sandbox` commandLine switches suppress Chromium's brief transparent repaint.
+- A debounced `move`-event `setBackgroundColor` call forces a repaint after each window move.
+
+---
+
 ## Project Summary
 
 DeskX is a Windows desktop application that injects dynamic wallpapers behind desktop icons using the undocumented Win32 WorkerW technique. On top of any wallpaper, a modular widget overlay system lets users place live widgets — weather, time, calendar, AQI, countdown, and more — independently configured per monitor.
@@ -571,17 +757,17 @@ DeskX is a Windows desktop application that injects dynamic wallpapers behind de
 
 | Component | File | Role |
 |---|---|---|
-| **App Entry** | `src/main/index.js` | Window creation, IPC handlers (all 3 layers), autostart, single-instance lock, anti-flicker flags |
-| **Wallpaper Manager** | `src/main/wallpaper-manager.js` | Creates/manages wallpaper BrowserWindows (WorkerW) and **3 overlay BrowserWindows** per monitor; `routeWidgetsByLayer()` |
+| **App Entry** | `src/main/index.js` | Window creation, IPC handlers (multi-layer aware), anti-flicker switches |
+| **Wallpaper Manager** | `src/main/wallpaper-manager.js` | Creates/manages wallpaper BrowserWindows (WorkerW) and **3 overlay layers** per monitor; `routeWidgetsByLayer()` |
 | **Win32 Integration** | `src/main/win32-wallpaper.js` | WorkerW injection + `pinOverlayToBottom`, `pinOverlayAboveTaskbar`, `pinOverlayTopmost` |
-| **Settings Store** | `src/main/settings-store.js` | electron-store wrapper; includes `widgetsDraggable`, `widgetsInteractive` keys |
+| **Settings Store** | `src/main/settings-store.js` | electron-store wrapper; includes `widgetsDraggable`, `widgetsInteractive`, per-widget config keys |
 | **System Tray** | `src/main/tray.js` | Tray icon + context menu including Lock Widgets and Disable Interaction toggles |
-| **IPC Bridge** | `src/preload/preload.js` | Secure contextBridge; overlay channels: `overlay:hit-test`, `overlay:widget-moved`, `overlay:widget-config-changed`, `overlay:request-focus` |
-| **Settings UI** | `src/renderer/settings/settings.js` | Monitor layout, fit preview, widget editor & drag, inspector (all 14 widget descriptions + interactions + Z-order toggle) |
-| **Settings Styles** | `src/renderer/settings/settings.css` | Glassmorphism design system, sliding toggle switches, calendar marks inspector |
+| **IPC Bridge** | `src/preload/preload.js` | Secure contextBridge; overlay channels: `overlay:hit-test`, `overlay:widget-moved`, `overlay:request-focus` |
+| **Settings UI** | `src/renderer/settings/settings.js` | Monitor layout, fit preview, widget editor & drag, inspector panel with descriptions & all v3 toggles |
+| **Settings Styles** | `src/renderer/settings/settings.css` | Glassmorphism design system, scrollable inspector, sliding toggle switches, widget description box |
 | **Widget Picker** | `src/renderer/settings/index.html` | Scrollable widget type picker modal |
-| **Overlay Renderer** | `src/renderer/overlay/overlay.js` | All 14 widgets + hit-test + live drag + all v3 interactions (context menus, forecasts, favourites, date picker, marks) |
-| **Overlay Styles** | `src/renderer/overlay/overlay.css` | Widget styles incl. context menus, forecast cards, date-picker popover, condition tints, glow animations |
+| **Overlay Renderer** | `src/renderer/overlay/overlay.js` | All 14 widget types, hit-test loop, live drag, all v3 interactions (context menus, forecasts, favourites, etc.) |
+| **Overlay Styles** | `src/renderer/overlay/overlay.css` | Widget visual styles, context menu, forecast cards, date-picker popover, condition tints |
 | **Wallpaper Renderer** | `src/renderer/wallpaper/renderer.js` | Media loading and fit CSS only (no widgets) |
 
 ### Technology Stack
