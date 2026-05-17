@@ -9,6 +9,8 @@ const path = require('path');
 let tray = null;
 let isPaused = false;
 let isMuted = true;
+let isWidgetsLocked = false;
+let isWidgetsNonInteractive = false;
 
 /**
  * Create the system tray icon and menu.
@@ -87,6 +89,23 @@ function updateMenu(callbacks) {
       click: () => {
         isMuted = !isMuted;
         callbacks.onToggleMute(isMuted);
+        updateMenu(callbacks);
+      },
+    },
+    { type: 'separator' },
+    {
+      label: isWidgetsLocked ? '🔓  Unlock Widgets' : '🔒  Lock Widgets',
+      click: () => {
+        isWidgetsLocked = !isWidgetsLocked;
+        if (callbacks.onToggleWidgetsLocked) callbacks.onToggleWidgetsLocked(!isWidgetsLocked);
+        updateMenu(callbacks);
+      },
+    },
+    {
+      label: isWidgetsNonInteractive ? '👆  Enable Widget Interaction' : '🚫  Disable Widget Interaction',
+      click: () => {
+        isWidgetsNonInteractive = !isWidgetsNonInteractive;
+        if (callbacks.onToggleWidgetsInteractive) callbacks.onToggleWidgetsInteractive(!isWidgetsNonInteractive);
         updateMenu(callbacks);
       },
     },

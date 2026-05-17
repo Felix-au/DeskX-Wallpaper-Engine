@@ -48,6 +48,14 @@ const schema = {
     type: 'string',
     default: 'Ctrl+Alt+W',
   },
+  widgetsDraggable: {
+    type: 'boolean',
+    default: true,
+  },
+  widgetsInteractive: {
+    type: 'boolean',
+    default: true,
+  },
 };
 
 const store = new Store({ schema });
@@ -164,6 +172,8 @@ function getAllSettings() {
     globalConfig: store.get('globalConfig'),
     autostart: store.get('autostart'),
     interactiveHotkey: store.get('interactiveHotkey'),
+    widgetsDraggable: store.get('widgetsDraggable'),
+    widgetsInteractive: store.get('widgetsInteractive'),
   };
 }
 

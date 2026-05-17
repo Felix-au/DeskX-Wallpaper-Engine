@@ -184,6 +184,74 @@ function setupIPC() {
   ipcMain.handle('window-close', () => {
     if (settingsWindow) settingsWindow.close();
   });
+
+  // --- Overlay IPC Handlers ---
+
+  // Hit-test: toggle click-through on overlay window
+  ipcMain.on('overlay:hit-test', (event, isHit) => {
+    // Find which overlay sent this
+    const overlayWindows = wallpaperManager.getOverlayWindows();
+    for (const [monitorId, overlay] of overlayWindows) {
+      if (!overlay.isDestroyed() && overlay.webContents === event.sender) {
+        try {
+          const hwnd = require('./win32-wallpaper').bufferToHwnd(overlay.getNativeWindowHandle());
+          if (isHit) {
+            // Mouse is over a widget — allow clicks
+            overlay.setIgnoreMouseEvents(false);
+            require('./win32-wallpaper').setWindowClickThrough(hwnd, false);
+          } else {
+            // Mouse is over empty space — pass clicks through
+            overlay.setIgnoreMouseEvents(true, { forward: true });
+            require('./win32-wallpaper').setWindowClickThrough(hwnd, true);
+          }
+        } catch (err) {
+          console.error('[Main] Hit-test toggle failed:', err.message);
+        }
+        break;
+      }
+    }
+  });
+
+  // Widget moved via drag on desktop
+  ipcMain.on('overlay:widget-moved', (event, index, x, y) => {
+    const overlayWindows = wallpaperManager.getOverlayWindows();
+    for (const [monitorId, overlay] of overlayWindows) {
+      if (!overlay.isDestroyed() && overlay.webContents === event.sender) {
+        wallpaperManager.updateWidgetPosition(monitorId, index, x, y);
+        break;
+      }
+    }
+  });
+
+  // Widget config changed via interaction (e.g., clock toggled 12h)
+  ipcMain.on('overlay:widget-config-changed', (event, index, config) => {
+    const overlayWindows = wallpaperManager.getOverlayWindows();
+    for (const [monitorId, overlay] of overlayWindows) {
+      if (!overlay.isDestroyed() && overlay.webContents === event.sender) {
+        const mode = settingsStore.getMode();
+        const monitorConfig = settingsStore.getMonitorConfig(monitorId);
+        if (monitorConfig.widgets && monitorConfig.widgets[index]) {
+          monitorConfig.widgets[index] = { ...monitorConfig.widgets[index], ...config };
+          settingsStore.setMonitorConfig(monitorId, { widgets: monitorConfig.widgets });
+        }
+        break;
+      }
+    }
+  });
+
+  // Draggable toggle
+  ipcMain.handle('set-widgets-draggable', (_, enabled) => {
+    settingsStore.store.set('widgetsDraggable', enabled);
+    wallpaperManager.broadcastOverlayMode();
+    return true;
+  });
+
+  // Interactive toggle
+  ipcMain.handle('set-widgets-interactive', (_, enabled) => {
+    settingsStore.store.set('widgetsInteractive', enabled);
+    wallpaperManager.broadcastOverlayMode();
+    return true;
+  });
 }
 
 // ── App Lifecycle ───────────────────────────────────────────────────────
@@ -201,6 +269,14 @@ app.whenReady().then(() => {
     onTogglePause: (paused) => wallpaperManager.togglePause(paused),
     onToggleMute: (muted) => wallpaperManager.toggleSoundAll(!muted),
     onRemoveWallpapers: () => wallpaperManager.removeAllWallpapers(),
+    onToggleWidgetsLocked: (draggable) => {
+      settingsStore.store.set('widgetsDraggable', draggable);
+      wallpaperManager.broadcastOverlayMode();
+    },
+    onToggleWidgetsInteractive: (interactive) => {
+      settingsStore.store.set('widgetsInteractive', interactive);
+      wallpaperManager.broadcastOverlayMode();
+    },
     onQuit: () => {
       wallpaperManager.removeAllWallpapers();
       trayModule.destroyTray();

@@ -1,0 +1,566 @@
+/* ====================================================================
+   DeskX Widget Overlay Styles
+   Transparent full-viewport overlay for interactive desktop widgets.
+   The body is transparent; only widget elements receive pointer events.
+   ==================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: transparent;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-app-region: no-drag;
+}
+
+#widget-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ── Base Widget ────────────────────────────────────────────────────── */
+
+.widget {
+  position: absolute;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  transition: box-shadow 0.2s ease, outline 0.2s ease;
+  cursor: default;
+}
+
+.widget.theme-light {
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+.widget.theme-dark {
+  color: #000;
+  text-shadow: 0 2px 10px rgba(255,255,255,0.3);
+}
+
+/* Dragging state */
+.widget.dragging {
+  cursor: grabbing;
+  opacity: 0.85;
+  z-index: 1000;
+  outline: 2px solid rgba(99, 102, 241, 0.6);
+  outline-offset: 4px;
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+}
+
+/* Hover indicator when draggable */
+.widget.draggable:hover {
+  outline: 1px solid rgba(99, 102, 241, 0.3);
+  outline-offset: 4px;
+  cursor: grab;
+}
+
+/* Non-interactive (pass-through) widget */
+.widget.non-interactive {
+  pointer-events: none;
+}
+
+/* ── Widget Interaction Buttons ────────────────────────────────────── */
+
+.widget-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, background 0.2s ease;
+  pointer-events: auto;
+}
+
+.widget:hover .widget-action-btn {
+  opacity: 0.7;
+}
+
+.widget-action-btn:hover {
+  opacity: 1 !important;
+  background: rgba(255,255,255,0.3);
+}
+
+/* Calendar nav arrows */
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.calendar-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.1);
+  color: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.calendar-nav-btn:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+/* ── Digital Clock ─────────────────────────────────────────────────── */
+
+.digital-time {
+  font-size: 80px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.digital-date {
+  font-size: 24px;
+  font-weight: 400;
+  margin-top: 10px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ── Analog Clock ──────────────────────────────────────────────────── */
+
+.analog-clock {
+  width: 300px;
+  height: 300px;
+  position: relative;
+}
+
+.analog-clock .face {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: relative;
+}
+
+.analog-clock.minimalist .face {
+  border: 2px solid currentColor;
+}
+
+.analog-clock .hand {
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  transform-origin: bottom center;
+  background: currentColor;
+  border-radius: 4px;
+}
+
+.analog-clock .hour {
+  width: 6px;
+  height: 25%;
+  z-index: 3;
+}
+
+.analog-clock .minute {
+  width: 4px;
+  height: 35%;
+  z-index: 2;
+}
+
+.analog-clock .second {
+  width: 2px;
+  height: 40%;
+  background: #ff4757;
+  z-index: 1;
+}
+
+.analog-clock .center-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  background: currentColor;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+}
+
+.analog-clock.numbered .number {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* ── Weather ───────────────────────────────────────────────────────── */
+
+.weather-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px);
+  padding: 15px 25px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.theme-dark .weather-container {
+  background: rgba(0,0,0,0.1);
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.weather-info-main {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.weather-temp {
+  font-size: 48px;
+  font-weight: 700;
+}
+
+.weather-location, .weather-location-small {
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.8;
+  margin-top: -5px;
+}
+
+.weather-location-small {
+  margin-top: 0;
+  opacity: 0.6;
+}
+
+.weather-location-tiny {
+  font-size: 11px;
+  opacity: 0.6;
+  font-weight: 500;
+}
+
+.clock-weather-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.weather-icon {
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.weather-icon img {
+  width: 48px;
+  height: 48px;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+}
+
+/* Detailed Weather */
+.weather-detailed-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  min-width: 200px;
+}
+
+.weather-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.weather-temp-large {
+  font-size: 64px;
+  font-weight: 800;
+}
+
+.weather-condition-text {
+  font-size: 20px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.weather-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  font-size: 13px;
+  opacity: 0.9;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 10px;
+}
+
+.stat-item span {
+  opacity: 0.6;
+}
+
+/* ── Clock + Weather ───────────────────────────────────────────────── */
+
+.widget-clock-weather {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 20px;
+}
+
+.digital-time-small {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.clock-weather-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+/* ── Astronomy ─────────────────────────────────────────────────────── */
+
+.astro-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.astro-item span {
+  opacity: 0.6;
+  margin-right: 5px;
+}
+
+/* ── AQI ───────────────────────────────────────────────────────────── */
+
+.aqi-widget {
+  padding: 10px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aqi-value {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.aqi-pm {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.aqi-label {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* ── Custom Text ───────────────────────────────────────────────────── */
+
+.custom-text-content {
+  font-size: 24px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.custom-text-content[contenteditable="true"] {
+  outline: 1px dashed rgba(99, 102, 241, 0.5);
+  outline-offset: 4px;
+  cursor: text;
+  min-width: 50px;
+}
+
+/* ── Embed Container ───────────────────────────────────────────────── */
+
+.embed-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Battery ───────────────────────────────────────────────────────── */
+
+.battery-widget {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+}
+
+.battery-icon-wrapper {
+  width: 34px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-radius: 3px;
+  position: relative;
+  padding: 1px;
+}
+
+.battery-icon-wrapper::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 4px;
+  width: 3px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 0 1px 1px 0;
+}
+
+.battery-level {
+  height: 100%;
+  background: #10b981;
+  border-radius: 1px;
+}
+
+.battery-widget.low .battery-level {
+  background: #ef4444;
+}
+
+.charging-bolt {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  color: #fff;
+  text-shadow: 0 0 2px #000;
+}
+
+/* ── Countdown ─────────────────────────────────────────────────────── */
+
+.countdown-widget {
+  text-align: center;
+  padding: 10px;
+}
+
+.countdown-label {
+  font-size: 12px;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.countdown-timer {
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Quote ──────────────────────────────────────────────────────────── */
+
+.quote-widget {
+  max-width: 300px;
+  padding: 15px;
+  text-align: center;
+}
+
+.quote-text {
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.quote-author {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+/* ── Calendar ──────────────────────────────────────────────────────── */
+
+.calendar-widget {
+  padding: 15px;
+  min-width: 220px;
+}
+
+.calendar-header {
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  text-align: center;
+}
+
+.calendar-grid .day-name {
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.5;
+  padding-bottom: 5px;
+}
+
+.calendar-grid .day {
+  font-size: 12px;
+  padding: 6px 0;
+  border-radius: 6px;
+}
+
+.calendar-grid .day.today {
+  background: var(--accent, #6366f1);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+}
+
+.calendar-grid .day.empty {
+  visibility: hidden;
+}
+
+/* ── Refresh indicator ─────────────────────────────────────────────── */
+
+.widget-refresh-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
+.widget-refresh-btn.spinning {
+  animation: spin 0.6s linear;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

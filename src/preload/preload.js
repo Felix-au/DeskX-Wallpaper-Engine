@@ -25,6 +25,19 @@ contextBridge.exposeInMainWorld('wallpaperAPI', {
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
   setAutostart: (enabled) => ipcRenderer.invoke('set-autostart', enabled),
 
+  // --- Overlay Widget APIs (renderer → main) ---
+  overlayHitTest: (isHit) => ipcRenderer.send('overlay:hit-test', isHit),
+  overlayWidgetMoved: (index, x, y) => ipcRenderer.send('overlay:widget-moved', index, x, y),
+  overlayWidgetConfigChanged: (index, config) => ipcRenderer.send('overlay:widget-config-changed', index, config),
+
+  // --- Overlay Widget APIs (main → renderer) ---
+  onSetWidgets: (callback) => ipcRenderer.on('set-widgets', (_, widgets) => callback(widgets)),
+  onSetOverlayMode: (callback) => ipcRenderer.on('set-overlay-mode', (_, mode) => callback(mode)),
+
+  // --- Widget Interaction Toggles (settings UI) ---
+  setWidgetsDraggable: (enabled) => ipcRenderer.invoke('set-widgets-draggable', enabled),
+  setWidgetsInteractive: (enabled) => ipcRenderer.invoke('set-widgets-interactive', enabled),
+
   // --- Events from main to settings ---
   onSettingsUpdated: (callback) => ipcRenderer.on('settings-updated', (_, settings) => callback(settings)),
   onDisplaysChanged: (callback) => ipcRenderer.on('displays-changed', (_, displays) => callback(displays)),

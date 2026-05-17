@@ -11,6 +11,12 @@ const win32Wallpaper = require('./win32-wallpaper');
 // Map of monitor ID => BrowserWindow
 const wallpaperWindows = new Map();
 
+// Map of monitor ID => Overlay BrowserWindow
+const overlayWindows = new Map();
+
+// Overlay z-order maintenance timers
+const overlayZOrderTimers = new Map();
+
 // Spanning window (when in spanning mode)
 let spanningWindow = null;
 
@@ -169,7 +175,77 @@ function createSpanningWindow(config) {
 }
 
 /**
- * Destroy all wallpaper windows.
+ * Create a transparent overlay BrowserWindow for a specific display.
+ * This window sits above the desktop but below all normal windows.
+ * It renders interactive widgets.
+ * @param {Electron.Display} display
+ * @returns {BrowserWindow}
+ */
+function createOverlayWindow(display) {
+  const { x, y, width, height } = display.bounds;
+
+  const win = new BrowserWindow({
+    x,
+    y,
+    width,
+    height,
+    frame: false,
+    transparent: true,
+    skipTaskbar: true,
+    resizable: false,
+    movable: false,
+    focusable: false,
+    fullscreenable: false,
+    show: false,
+    hasShadow: false,
+    type: 'toolbar',
+    webPreferences: {
+      preload: path.join(__dirname, '..', 'preload', 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      backgroundThrottling: false,
+    },
+  });
+
+  win.setMenu(null);
+  win.setAlwaysOnTop(false);
+  win.setSkipTaskbar(true);
+  win.setIgnoreMouseEvents(true, { forward: true });
+
+  win.loadFile(path.join(__dirname, '..', 'renderer', 'overlay', 'index.html'));
+
+  win.once('ready-to-show', () => {
+    win.showInactive();
+
+    // Configure as overlay via Win32 API
+    try {
+      const hwnd = win32Wallpaper.bufferToHwnd(win.getNativeWindowHandle());
+      win32Wallpaper.setupOverlayWindow(hwnd);
+
+      // Periodic z-order maintenance to keep overlay below app windows
+      const timerId = setInterval(() => {
+        try {
+          if (!win.isDestroyed()) {
+            win32Wallpaper.pinOverlayToBottom(hwnd);
+          } else {
+            clearInterval(timerId);
+          }
+        } catch { clearInterval(timerId); }
+      }, 1000);
+      overlayZOrderTimers.set(display.id.toString(), timerId);
+    } catch (err) {
+      console.error('[WallpaperManager] Overlay setup failed:', err.message);
+    }
+  });
+
+  // Prevent focus
+  win.on('focus', () => win.blur());
+
+  return win;
+}
+
+/**
+ * Destroy all wallpaper windows and overlay windows.
  */
 function destroyAllWindows() {
   for (const [id, win] of wallpaperWindows) {
@@ -179,6 +255,19 @@ function destroyAllWindows() {
     }
   }
   wallpaperWindows.clear();
+
+  for (const [id, win] of overlayWindows) {
+    if (!win.isDestroyed()) {
+      win.close();
+    }
+  }
+  overlayWindows.clear();
+
+  // Clear z-order timers
+  for (const [, timerId] of overlayZOrderTimers) {
+    clearInterval(timerId);
+  }
+  overlayZOrderTimers.clear();
 
   if (spanningWindow && !spanningWindow.isDestroyed()) {
     try { win32Wallpaper.detachWindow(spanningWindow); } catch { /* ignore */ }
@@ -208,7 +297,15 @@ function applyWallpapers() {
     const config = settingsStore.getGlobalConfig();
     console.log(`[WallpaperManager] Spanning config: path="${config.wallpaperPath}"`);
     if (config.wallpaperPath) {
-      spanningWindow = createSpanningWindow(config);
+      // Don't pass widgets to wallpaper window — overlay handles them
+      const wallpaperConfig = { ...config, widgets: [] };
+      spanningWindow = createSpanningWindow(wallpaperConfig);
+    }
+    // Create overlay per monitor even in spanning mode
+    for (const display of displays) {
+      const monitorId = display.id.toString();
+      const overlay = createOverlayWindow(display);
+      overlayWindows.set(monitorId, overlay);
     }
   } else if (mode === 'same') {
     const globalConfig = settingsStore.getGlobalConfig();
@@ -216,11 +313,17 @@ function applyWallpapers() {
     if (globalConfig.wallpaperPath) {
       for (const display of displays) {
         const monitorId = display.id.toString();
-        const monitorConfig = settingsStore.getMonitorConfig(monitorId);
-        const configForDisplay = { ...globalConfig, widgets: monitorConfig.widgets || [] };
-        const win = createWallpaperWindow(display, configForDisplay);
+        // Wallpaper window gets media only, no widgets
+        const wallpaperConfig = { ...globalConfig, widgets: [] };
+        const win = createWallpaperWindow(display, wallpaperConfig);
         wallpaperWindows.set(monitorId, win);
       }
+    }
+    // Create overlay per monitor for widgets
+    for (const display of displays) {
+      const monitorId = display.id.toString();
+      const overlay = createOverlayWindow(display);
+      overlayWindows.set(monitorId, overlay);
     }
   } else {
     // 'different' mode
@@ -229,16 +332,25 @@ function applyWallpapers() {
       const config = settingsStore.getMonitorConfig(monitorId);
       console.log(`[WallpaperManager] Different config for ${monitorId}: path="${config.wallpaperPath}"`);
       if (config.wallpaperPath) {
-        const win = createWallpaperWindow(display, config);
+        // Wallpaper window — media only
+        const wallpaperConfig = { ...config, widgets: [] };
+        const win = createWallpaperWindow(display, wallpaperConfig);
         wallpaperWindows.set(monitorId, win);
       }
+      // Overlay window — widgets
+      const overlay = createOverlayWindow(display);
+      overlayWindows.set(monitorId, overlay);
     }
   }
 
   isActive = true;
 
-  // Release guard after a delay (allow window creation + attach to complete)
-  setTimeout(() => { isApplying = false; }, 3000);
+  // After windows are loaded, push widgets to overlays
+  setTimeout(() => {
+    sendWidgetsToOverlays();
+    broadcastOverlayMode();
+    isApplying = false;
+  }, 3000);
 }
 
 /**
@@ -382,6 +494,86 @@ function setupDisplayListeners() {
   // Don't listen to display-metrics-changed — it fires too often and causes loops
 }
 
+/**
+ * Send widget configs to each overlay window based on current settings.
+ */
+function sendWidgetsToOverlays() {
+  const mode = settingsStore.getMode();
+
+  for (const [monitorId, overlay] of overlayWindows) {
+    if (overlay.isDestroyed()) continue;
+
+    let widgets = [];
+    if (mode === 'same' || mode === 'spanning') {
+      const monitorConfig = settingsStore.getMonitorConfig(monitorId);
+      widgets = monitorConfig.widgets || [];
+      // Fallback to global widgets if no per-monitor widgets
+      if (widgets.length === 0) {
+        const globalConfig = settingsStore.getGlobalConfig();
+        widgets = globalConfig.widgets || [];
+      }
+    } else {
+      const config = settingsStore.getMonitorConfig(monitorId);
+      widgets = config.widgets || [];
+    }
+
+    overlay.webContents.send('set-widgets', widgets);
+  }
+}
+
+/**
+ * Broadcast current draggable/interactive mode to all overlays.
+ */
+function broadcastOverlayMode() {
+  const settings = settingsStore.getAllSettings();
+  const mode = {
+    draggable: settings.widgetsDraggable !== false,
+    interactive: settings.widgetsInteractive !== false,
+  };
+  for (const [, overlay] of overlayWindows) {
+    if (!overlay.isDestroyed()) {
+      overlay.webContents.send('set-overlay-mode', mode);
+    }
+  }
+}
+
+/**
+ * Update widget position in the store after a drag.
+ * @param {string} monitorId
+ * @param {number} widgetIndex
+ * @param {number} x
+ * @param {number} y
+ */
+function updateWidgetPosition(monitorId, widgetIndex, x, y) {
+  const mode = settingsStore.getMode();
+  let config;
+  if (mode === 'same' || mode === 'spanning') {
+    config = settingsStore.getMonitorConfig(monitorId);
+    if (!config.widgets || config.widgets.length === 0) {
+      config = settingsStore.getGlobalConfig();
+    }
+  } else {
+    config = settingsStore.getMonitorConfig(monitorId);
+  }
+
+  if (config.widgets && config.widgets[widgetIndex]) {
+    config.widgets[widgetIndex].x = x;
+    config.widgets[widgetIndex].y = y;
+    if (mode === 'same' || mode === 'spanning') {
+      settingsStore.setMonitorConfig(monitorId, { widgets: config.widgets });
+    } else {
+      settingsStore.setMonitorConfig(monitorId, config);
+    }
+  }
+}
+
+/**
+ * Get the overlay windows map (for IPC handlers).
+ */
+function getOverlayWindows() {
+  return overlayWindows;
+}
+
 module.exports = {
   applyWallpapers,
   setMonitorWallpaper,
@@ -395,4 +587,8 @@ module.exports = {
   getDisplaysInfo,
   getIsActive,
   setupDisplayListeners,
+  sendWidgetsToOverlays,
+  broadcastOverlayMode,
+  updateWidgetPosition,
+  getOverlayWindows,
 };

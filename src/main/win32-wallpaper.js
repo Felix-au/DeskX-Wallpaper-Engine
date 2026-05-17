@@ -326,10 +326,65 @@ function isUsingFallback() {
   return usingFallback;
 }
 
+// ── Overlay Window Helpers ──────────────────────────────────────────
+
+/**
+ * Toggle click-through on a window.
+ * When transparent=true, mouse events pass through to windows below.
+ * When transparent=false, the window receives mouse events normally.
+ * @param {number|Buffer} hwnd - Native window handle (numeric or Buffer)
+ * @param {boolean} transparent - Whether to enable click-through
+ */
+function setWindowClickThrough(hwnd, transparent) {
+  const hwndValue = Buffer.isBuffer(hwnd) ? bufferToHwnd(hwnd) : hwnd;
+  const exStyle = Number(GetWindowLongPtrW(hwndValue, GWL_EXSTYLE));
+  let newExStyle;
+  if (transparent) {
+    newExStyle = exStyle | WS_EX_TRANSPARENT;
+  } else {
+    newExStyle = exStyle & ~WS_EX_TRANSPARENT;
+  }
+  SetWindowLongPtrW(hwndValue, GWL_EXSTYLE, newExStyle);
+}
+
+/**
+ * Configure a window as an overlay: always-bottom z-order,
+ * tool window (hidden from taskbar/alt-tab), non-activatable.
+ * @param {number|Buffer} hwnd - Native window handle
+ */
+function setupOverlayWindow(hwnd) {
+  const hwndValue = Buffer.isBuffer(hwnd) ? bufferToHwnd(hwnd) : hwnd;
+
+  // Set extended styles: tool window + no-activate + layered + transparent (click-through by default)
+  const exStyle = Number(GetWindowLongPtrW(hwndValue, GWL_EXSTYLE));
+  const newExStyle = (exStyle | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED | WS_EX_TRANSPARENT) & ~WS_EX_APPWINDOW;
+  SetWindowLongPtrW(hwndValue, GWL_EXSTYLE, newExStyle);
+
+  // Push to bottom of z-order (above desktop, below normal windows)
+  pushToBottom(hwndValue);
+
+  ShowWindow(hwndValue, SW_SHOWNOACTIVATE);
+  console.log('[Win32] ✓ Overlay window configured');
+}
+
+/**
+ * Re-pin an overlay window to the bottom of z-order.
+ * Call this periodically or after focus changes to keep overlay below apps.
+ * @param {number|Buffer} hwnd - Native window handle
+ */
+function pinOverlayToBottom(hwnd) {
+  const hwndValue = Buffer.isBuffer(hwnd) ? bufferToHwnd(hwnd) : hwnd;
+  pushToBottom(hwndValue);
+}
+
 module.exports = {
   findWorkerW,
   attachWindow,
   detachWindow,
   resetDesktop,
   isUsingFallback,
+  bufferToHwnd,
+  setWindowClickThrough,
+  setupOverlayWindow,
+  pinOverlayToBottom,
 };
