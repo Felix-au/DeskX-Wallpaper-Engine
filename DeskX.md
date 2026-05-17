@@ -26,7 +26,7 @@
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────────┐     ┌────────────────┐
-│  You pick    │────▶│  DeskX      │────▶│  WorkerW         │────▶│  Wallpaper     │
+│  You pick    │───▶│  DeskX       │────▶│  WorkerW         │────▶│ Wallpaper     │
 │  a wallpaper │     │  Settings UI │     │  Injection       │     │  Appears       │
 │  (image/GIF/ │     │  fit mode,   │     │  (Win32 API)     │     │  behind icons  │
 │  video/HTML) │     │  mode, opts  │     │  via koffi FFI   │     │  & taskbar     │
@@ -34,7 +34,7 @@
                             │
                             ▼
                    ┌─────────────────┐     ┌──────────────────┐     ┌────────────────┐
-                   │  Widget Editor  │────▶│  Widget Config   │────▶│  Widgets live │
+                   │  Widget Editor  │────▶│  Widget Config   │───▶│  Widgets live  │
                    │  (drag & drop)  │     │  saved per       │     │  on top of     │
                    │  Inspector panel│     │  monitor to      │     │  wallpaper     │
                    │  city search    │     │  electron-store  │     │  (IPC push)    │
@@ -492,7 +492,7 @@ Shows your laptop's battery level with a visual bar and charging indicator, plus
 
 ```
 ┌────────────────────────┐
-│  [████████░░] 78%      │
+│  [████████  ] 78%      │
 │  ⚡ Charging  ~1h 20m  │
 └────────────────────────┘
 ```
@@ -546,7 +546,7 @@ Displays a random inspirational quote. Refreshes every 2 hours.
 │  "The only way to do great work  │
 │   is to love what you do."       │
 │                — Steve Jobs      │
-│  🤍  ⭐  🌐              📋      │
+│  🤍  ⭐  🌐              📋     │
 └──────────────────────────────────┘
 ```
 
@@ -570,16 +570,16 @@ Favourites are stored in `widget.config.favourites` and persist across restarts.
 Shows the current month as a grid with today highlighted. Supports **date marking** — add color-coded dots and labels to any date.
 
 ```
-┌──────────────────────────────┐
-│  ◀ 1    MAY  2026    3 ▶    │
+┌─────────────────────────────┐
+│  ◀ 1    MAY  2026    3 ▶   │
 │  S  M  T  W  T  F  S        │
-│              1   2   3       │
-│  4  5  6  7  8  9  10       │
+│              1  2  3        │
+│  4  5  6  7  8  9 10        │
 │ 11 12 13 14 15 16 17        │
 │ 18 19 20 21 22 23 24        │
 │ 25 26 27[28]29 30 31 ●      │
 │          ↑ today  ↑ mark    │
-└──────────────────────────────┘
+└─────────────────────────────┘
 ```
 
 Today's date cell has an accent-colored background with a glow effect.
