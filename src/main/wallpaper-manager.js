@@ -232,7 +232,7 @@ function createOverlayWindow(display) {
             clearInterval(timerId);
           }
         } catch { clearInterval(timerId); }
-      }, 5000);
+      }, 30000);
       overlayZOrderTimers.set(display.id.toString(), timerId);
     } catch (err) {
       console.error('[WallpaperManager] Overlay setup failed:', err.message);
